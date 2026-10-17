@@ -1,50 +1,59 @@
-# Memory Garden · 记忆花园
+# Memory Garden
 
-慢慢说，花会慢慢开。面向阿尔茨海默病患者与家人朋友的回忆陪伴黑客松原型。
+A calm, English-language reminiscence companion for people living with Alzheimer's disease and their family or friends. This hackathon prototype offers a welcoming place to share stories, without testing memory.
 
-## 本地运行
+## Run locally
 
-需要 Node.js 22 或更高版本。
+Requires Node.js 22 or newer.
 
 ```powershell
 npm ci
 npm run dev
 ```
 
-打开 http://localhost:3000 。默认无需 API 密钥，即可体验明确标注的「本地演示 · 规则回应」。
+Open http://localhost:3000. No API key is required for local guided replies; mode details are in Settings → Developer options.
 
-## 已实现
+## Experience
 
-- 中文水彩花园，三种原创植物插画，种子／嫩芽／茎叶／花苞／微开／绽放六种状态。
-- 语音与文字表达。语音先确认文字，再留下；拒绝麦克风或浏览器不支持时，可使用文字。
-- 设备合成语音朗读，可停止或关闭；不模仿亲人。
-- 单次一个方向的本地规则回应，以及可选的真实云端 AI 接口。
-- 家人陪伴提示、每次补充前的患者同意、单独署名和来源保留。
-- 接纳重复；明确拒绝、疲惫或不适时暂停；花朵不倒退。暂停撤销录音、播报和未完成的 AI 请求。
-- 正常结束后绽放，不设最低细节数量；本机保存、故事回看、JSON 导出、单条删除。
-- 刷新后的未完成会话以暂停状态恢复；损坏的数据不会在读取时被覆盖。
-- 手机和平板布局、原生模态框焦点管理、键盘操作、减少动效模式。
+1. Begin on a quiet entrance page with an empty watercolor meadow.
+2. Enter and choose one of three icon cues: Places, People, or Home. Hover/touch requests the full spoken invitation.
+3. Touch the quiet companion bubble to reveal and hear one gentle message, then answer by voice or text. No flower appears before a confirmed answer.
+4. The first meaningful answer creates a seed. Each distinct additional detail advances one stage: sprout, stem, leaf, bud, petal, then bloom. Repetition is welcome and does not force progress.
+5. Choose **Keep this moment**, review the words and title, then save at its current growth stage. Open the story later and choose Continue this story; saving never forces a bloom.
+6. Drag or swipe the garden to explore saved flowers. Tap a flower to read/listen, continue it, or delete its story. Settings provides export.
 
-花朵表示留下了一段讲述，不是对记忆能力、正确性或健康状况的评分。花种映射是象征性设计。首次表达确定花种；不同的新表达可能推进一个阶段，重复不推进主要阶段；同义重复识别目前只做基础文本归一化。家人补充增加侧苞，不替代患者表达。
+The garden starts without prefilled stories or example flowers. Legacy fictional examples are removed when loading an older garden; personal stories remain intact. A restored unfinished story is paused, and remains available after entering.
 
-## 接入真实 AI
+## Included
 
-在项目根目录创建 `.env.local`：
+- English interface, companion prompt, local replies, error messages, speech recognition, and device narration.
+- Three watercolor plant illustrations; native SVG stages for gradual growth. Only the bloom stage uses the full flower image.
+- Voice transcription review before sharing. Typing remains available when recognition is unsupported or permission is declined.
+- Family hints, patient consent for every family contribution, separate attribution, and a side bud that does not replace the patient's expression.
+- Immediate pause for explicit refusal, fatigue, confusion, or discomfort in English, with legacy Chinese signal support. Pausing cancels recording, narration, and pending replies.
+- Local browser persistence, paused restoration, and protection against overwriting unreadable saved data.
+- Responsive layouts, large controls, native modal focus management, keyboard access, and reduced motion.
+
+Growth is a symbolic response to sharing, never a score for accuracy, ability, or health. Detail detection uses basic text normalization; it does not establish whether a recollection is true or semantically new. User-authored stories retain their original language.
+
+## Optional cloud AI
+
+Create `.env.local` in this app directory:
 
 ```dotenv
 OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=gpt-5.6-terra
 ```
 
-重启开发服务，在页面底部「设置」中主动开启「使用云端 AI」。密钥只由服务端读取，禁止使用 `NEXT_PUBLIC_` 前缀。未配置时不会伪装为大模型回复。
+Restart the server, open **Settings**, and enable **Use cloud AI**. The API key stays server-side; never give it a `NEXT_PUBLIC_` prefix. Cloud mode is off each time the app opens. The local demo does not pretend to use a language model.
 
-接口采用 [OpenAI Responses API 的结构化输出](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses)，设置 `store: false`。它禁用 Response 应用状态存储，不代表服务商绝不保留数据；参见 [OpenAI 数据控制](https://developers.openai.com/api/docs/guides/your-data)。只发送当前会话最近最多20条、合计不超过16000字符的文本，不包含其他花朵或原始录音。每次打开应用都需重新选择云端模式。
+The route uses the [OpenAI Responses API with structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses) and `store: false`. This disables Response application-state storage; it is not a guarantee of zero provider retention. See [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data).
 
-本地演示不调用 AI 服务。浏览器语音识别可能使用浏览器供应商的在线服务；麦克风使用前单独说明并取得同意。本应用不存储原始录音。识别支持情况、语言质量与服务可用性取决于浏览器，推荐在 Chrome 中自行验证。
+Only up to 20 recent text entries from the current conversation, totaling at most 16,000 characters, are sent. Other saved flowers and audio recordings are excluded. Browser speech recognition may process audio through the browser vendor's online service, with a separate explanation before microphone use. The app does not store raw recordings.
 
-付费 AI 接口当前仅允许本机来源。正式上线前需要实现身份验证、家庭成员权限、持久化限流和适用的数据保护要求。
+Paid cloud calls in this prototype are restricted to localhost and same-origin requests. Public deployment requires authentication, family access controls, persistent rate limits, and an appropriate privacy review.
 
-## 检查
+## Validation
 
 ```powershell
 npm test
@@ -52,20 +61,30 @@ npm run build
 npm start
 ```
 
-测试覆盖表达生长、重复、暂停、家人同意、存储恢复、输入限制、请求来源、结构化接口和错误处理。测试使用模拟服务，不产生付费调用。真实 AI 的内容质量和真实麦克风需要在已配置环境中进一步验证。
+Automated tests cover gradual growth, repetition, consent, pauses, empty gardens, legacy example migration, storage recovery, request limits, and structured API replies. API tests use mocks and incur no paid calls. Real microphone quality and live AI output need verification on the intended device with a configured key.
 
-## 文件说明
+## Source
 
-- `components/GardenApp.tsx`：患者流程、语音、陪伴提示与保存回看。
-- `components/GardenFlower.tsx`：原生 SVG 生长阶段与水彩花朵。
-- `app/garden.css`：视觉规范、响应式和减少动效。
-- `lib/garden.ts`：数据模型、基础生长规则、示例和本地回应。
-- `lib/garden-ai.ts`：AI 系统提示词和结构化输出约束。
-- `app/api/garden/route.ts`：服务端 AI 接口、输入验证与中止。
-- `docs/ASSETS.md`：插画生成方式、路径与完整提示词。
+- `components/GardenApp.tsx`: entrance, topics, conversation, voice, family contributions, and stories.
+- `components/GardenFlower.tsx`: gradual native SVG growth and completed watercolor flower.
+- `lib/garden.ts`: topics, local replies, growth, pause detection, and persistence.
+- `lib/garden-ai.ts`: English companion system prompt and response schema.
+- `app/api/garden/route.ts`: optional server-side cloud conversation.
+- `docs/ASSETS.md`: generated illustration provenance and prompts.
+- `docs/VALIDATION.md`: validation scope and limitations.
 
-## 使用边界与后续工作
+This is a companionship prototype, without diagnosis, treatment, or medical advice.
 
-这是陪伴原型，不提供诊断、治疗或医疗建议，不承诺改善记忆。示例讲述均为虚构。AI 可能出错，用户原话与家人补充分开保留。
+## Incremental M1–M9 update
 
-记录在当前浏览器中，清除浏览器数据会删除记录；可在设置中导出副本。默认不共享给其他设备或家庭成员。尚未实现云账号、远程多人参与、完整花种库、导入恢复、后台提醒或临床效果评估。正式面向患者使用前，需要照护专业人员评审和适当的可用性研究。
+The entrance has one action and a 750ms transition. Three topic invitations appear 400ms apart; Explore three other ideas changes the whole set. The leaf handle opens a quiet sidebar for **Picture Together**, **Familiar Sounds**, and **Little Notes**, each with an original SVG icon, route, and return-to-garden link. The teammate games are not ready: their pages clearly say Coming soon.
+
+Growth now has eight stages. Saving retains the current stage and supports resuming a saved story. Silence pauses after 30 seconds without input. Add or edit a trusted contact in Settings to enable a user-initiated telephone link while resting; the app never calls automatically and keeps contacts out of AI input.
+
+See [the incremental implementation record](docs/M1-M9-implementation.md) and [the local review diff](docs/M1-M9.patch). The bilingual copy table is documentation only; the app remains English. GitHub upload waits for approval of the local preview.
+
+## Latest cognitive-friendly delivery
+
+See [Completion report](docs/COMPLETION.md) and [Teammate integration guide](docs/TEAM-HANDOFF.md). These describe the current UI and supersede older incremental design notes. The footer and gallery entrance are removed. The top-right Settings drawer includes voice controls, optional name/contact editing, privacy, Developer options, demo reset, and leave.
+
+Names resolve from an optional `?name=Mary` invitation, then localStorage `gardenName`, then `My Garden`. Flower storage is a validated version-2 document with a stable `garden_id`, named stages, public details, and extra provenance fields. No registration or active database is used. New replies stay quiet until explored; hover speech depends on browser activation policy.

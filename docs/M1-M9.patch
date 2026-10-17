@@ -1,0 +1,1587 @@
+diff --git a/app/activities/[activity]/page.tsx b/app/activities/[activity]/page.tsx
+new file mode 100644
+--- /dev/null
++++ b/app/activities/[activity]/page.tsx
+@@ -0,0 +1,17 @@
++import Link from 'next/link';
++import { notFound } from 'next/navigation';
++import { ArrowLeft } from 'lucide-react';
++import GardenActivityIcon from '../../../components/GardenActivityIcon';
++import { gardenActivities } from '../../../lib/garden-activities';
++
++export function generateStaticParams() { return gardenActivities.map(({ id }) => ({ activity: id })); }
++
++export default async function ActivityPage({ params }: { params: Promise<{ activity: string }> }) {
++  const { activity } = await params;
++  const corner = gardenActivities.find(item => item.id === activity);
++  if (!corner) notFound();
++  return <main className="garden-activity-page">
++    <header><Link href="/?garden=1" className="garden-text-button"><ArrowLeft size={19} />Return to the garden</Link><span>Memory Garden</span></header>
++    <section><GardenActivityIcon kind={corner.icon} /><p className="garden-eyebrow">A QUIET CORNER · COMING SOON</p><h1>{corner.name}</h1><p>{corner.description}</p><p>This quiet corner is still being prepared. Your garden is here whenever you would like to return.</p><Link href="/?garden=1" className="garden-primary">Return to the garden<ArrowLeft size={18} /></Link></section>
++  </main>;
++}
+diff --git a/app/cognitive.css b/app/cognitive.css
+new file mode 100644
+--- /dev/null
++++ b/app/cognitive.css
+@@ -0,0 +1,93 @@
++/* Quiet by default: feedback follows deliberate exploration. */
++.cognitive-garden .screen-entrance .entrance-content { transform:none; text-align:center; }
++.cognitive-garden .entrance-landscape-motion,.cognitive-garden .garden-air span { animation:none; }
++.cognitive-garden .screen-entrance .magic-entry { position:relative; display:grid; place-items:center; width:132px; height:132px; min-width:80px; min-height:80px; margin:30px auto; padding:18px; overflow:visible; border:1px solid #ffffff80; border-radius:50%; background:#f7faed38; color:var(--garden-ink); box-shadow:0 0 26px #ffffff40; cursor:pointer; }
++.magic-entry svg { width:92px; height:92px; transition:transform 450ms ease; }
++.magic-entry-label { position:absolute; top:calc(100% + 14px); left:50%; transform:translate(-50%,6px); opacity:0; font:26px/1.3 var(--garden-serif); transition:opacity 350ms ease,transform 350ms ease; pointer-events:none; }
++.magic-entry:is(:hover,:focus-visible,[data-touched]) .magic-entry-label { opacity:1; transform:translate(-50%,0); }
++.cognitive-garden .screen-entrance .magic-entry:is(:hover,:focus-visible,[data-touched]):not(:disabled) { transform:none; background:#f7faed60; animation:quiet-touch-glow 3.5s ease-in-out infinite; }
++.magic-entry:is(:hover,:focus-visible,[data-touched]) svg { transform:scale(1.06); }
++.cognitive-garden .topic-bubbles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:min(900px,100%); gap:22px; margin:auto; }
++.cognitive-garden .topic-bubble { width:100%; min-width:80px; min-height:230px; gap:20px; padding:24px 12px; }
++.cognitive-garden .topic-bubble:hover:not(.topic-selected) { transform:none; }
++.topic-cue-icon { display:grid; place-items:center; width:100px; height:100px; border-radius:50%; color:var(--garden-green); background:radial-gradient(circle,#e8ecdecc,#e8ecde00 75%); transition:transform 350ms ease,box-shadow 350ms ease; }
++.topic-bubble[data-preview] .topic-cue-icon { transform:scale(1.1); animation:quiet-touch-glow 3.5s ease-in-out infinite; }
++.topic-voice-controls { display:flex; justify-content:center; align-items:center; gap:18px; margin:12px auto; max-width:620px; }
++.quiet-stop-voice,.quiet-companion .bubble-listen { min-width:80px; min-height:80px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; border:1px solid var(--garden-line); border-radius:28px; background:var(--garden-paper); color:var(--garden-ink); font-size:17px; }
++.topic-voice-controls p,.quiet-speech-notice { font-size:18px; line-height:1.6; color:var(--garden-secondary); }
++.quiet-speech-notice { max-width:620px; margin:12px auto; padding:0 20px; text-align:center; }
++.quiet-companion { padding:0; }
++.quiet-companion .bubble-topline { padding:12px 20px 0; margin:0; }
++.bubble-reveal { display:flex; align-items:center; justify-content:center; width:100%; min-width:80px; min-height:144px; padding:25px; border:0; border-radius:22px; background:transparent; color:var(--garden-ink); }
++.quiet-companion .bubble-message { display:block; margin:0; text-align:center; }
++.quiet-dots { display:flex; gap:12px; font:52px/1 var(--garden-serif); }
++.quiet-dots span { display:inline-block; animation:quiet-dot 1.8s ease-in-out infinite; }
++.quiet-dots span:nth-child(2) { animation-delay:180ms; }
++.quiet-dots span:nth-child(3) { animation-delay:360ms; }
++@keyframes quiet-dot { 0%,70%,100% { transform:translateY(0); opacity:.4; } 35% { transform:translateY(-5px); opacity:.85; } }
++@keyframes quiet-touch-glow { 0%,100% { box-shadow:0 0 16px #ffffff50,0 0 0 1px #d7ddca50; } 50% { box-shadow:0 0 34px #ffffffb0,0 0 0 1px #d7ddca80; } }
++@media (max-width:520px) {
++  .cognitive-garden .topic-bubbles { gap:8px; }
++  .cognitive-garden .topic-bubble { min-height:155px; padding:14px 4px; gap:12px; border-radius:46%; }
++  .cognitive-garden .topic-1 { margin-top:0; }
++  .topic-cue-icon { width:76px; height:80px; }
++  .topic-cue-icon svg { width:64px; height:64px; }
++  .cognitive-garden .topic-title { font-size:19px; }
++  .quiet-companion .bubble-message { font-size:25px; }
++}
++
++/* The garden itself holds the saved stories; there is no footer or gallery link. */
++.garden-canvas { position:absolute; inset:0; z-index:0; overflow:clip; touch-action:pan-y; cursor:grab; }
++.garden-canvas.is-panning { cursor:grabbing; }
++.garden-canvas:focus-visible { outline:3px solid var(--garden-green); outline-offset:-5px; }
++.garden-world { position:absolute; inset:0 auto 0 0; height:100%; will-change:transform; }
++.garden-world-landscape { z-index:-1; object-fit:cover; object-position:center bottom; pointer-events:none; user-select:none; }
++.garden-world-wash { position:absolute; inset:0; pointer-events:none; background:linear-gradient(to bottom,var(--garden-paper),#f9f7ef88 24%,#f9f7ef00 52%,#f9f7ef00 82%,var(--garden-paper)); }
++.garden-memory-plant { position:absolute; z-index:1; width:130px; height:195px; transform:translateX(-50%); padding:0; border:0; border-radius:45%; background:transparent; color:var(--garden-ink); }
++.garden-memory-plant > .garden-flower { height:100%; pointer-events:none; }
++.garden-memory-title { position:absolute; top:100%; left:50%; transform:translate(-50%,4px); min-width:100px; max-width:180px; padding:8px 12px; border-radius:18px; background:#fffdf4e8; font-size:16px; line-height:1.4; opacity:0; transition:opacity 300ms ease; pointer-events:none; }
++.garden-memory-plant:is(:hover,:focus-visible) .garden-memory-title { opacity:1; }
++.garden-introduction { position:relative; z-index:2; pointer-events:none; }
++.topic-content,.current-flower-place { z-index:2; }
++.topic-content { pointer-events:none; }
++.topic-content button,.topic-content a,.topic-voice-controls { pointer-events:auto; }
++.garden-settings-trigger { position:absolute; z-index:10; right:20px; top:14px; display:grid; place-items:center; width:80px; height:80px; border:0; border-radius:50%; background:transparent; color:var(--garden-secondary); }
++.garden-settings-trigger:hover { background:#e8ecde99; }
++.garden-header { padding-right:100px; }
++.garden-owner-stamp { font:italic 24px/1.3 var(--garden-serif); letter-spacing:0; }
++.garden-owner-stamp small { font-style:normal; }
++.entrance-owner-name { margin:0 0 14px; color:var(--garden-secondary); font:italic 28px/1.5 var(--garden-serif); font-weight:300; }
++.garden-name-prompt { position:relative; z-index:4; width:max-content; max-width:90%; margin:15px auto 0; display:flex; align-items:center; gap:12px; padding:0 15px; background:#fffdf4e8; border:1px solid var(--garden-line); border-radius:30px; }
++.garden-name-prompt button { min-height:80px; padding:10px; background:none; border:0; color:var(--garden-ink); font-size:20px; }
++.garden-name-prompt button + button { color:var(--garden-secondary); font-size:18px; }
++.garden-settings-drawer { top:0; bottom:0; right:0; left:auto; margin:0; height:100dvh; max-height:100dvh; width:min(580px,100%); border-radius:24px 0 0 24px; }
++.garden-settings-drawer .dialog-paper { min-height:100%; background:#fcfbf4ed; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
++.garden-settings-drawer .dialog-heading { flex-wrap:wrap; }
++.garden-settings-drawer .dialog-heading h2 { flex-basis:calc(100% - 90px); }
++.garden-settings-drawer .dialog-rest { order:2; }
++.garden-settings-drawer .garden-icon-button { min-width:80px; min-height:80px; }
++.garden-voice-settings h3 { font:24px/1.4 var(--garden-serif); margin:24px 0 14px; }
++.garden-voice-settings > div { display:flex; gap:20px; align-items:center; justify-content:center; }
++.garden-voice-settings button { width:80px; min-height:80px; border:1px solid var(--garden-line); border-radius:26px; color:var(--garden-ink); background:var(--garden-sage); font-size:35px; }
++.garden-voice-settings output { min-width:75px; font-size:25px; text-align:center; }
++.garden-developer-options { padding:20px 0; font-size:18px; line-height:1.7; }
++.garden-developer-options summary { cursor:pointer; min-height:60px; padding:15px 0; }
++.garden-developer-options > label { display:flex; align-items:center; gap:20px; font-size:21px; }
++.garden-developer-options > label > span { flex:1; }
++.garden-exit { margin:25px auto 0; width:100%; min-height:80px; }
++.name-voice-button { min-width:80px; min-height:80px; }
++.name-voice-permission { padding:18px; background:var(--garden-sage); border-radius:20px; font-size:18px; line-height:1.7; margin-top:20px; }
++@media (max-width:760px) {
++ .garden-header { height:auto; min-height:105px; padding:16px 90px 16px 0; flex-wrap:wrap; }
++ .garden-header-actions { flex-basis:100%; }
++ .garden-owner-stamp { font-size:21px; }
++ .garden-settings-trigger { right:12px; top:10px; }
++ .garden-memory-plant { width:105px; height:160px; }
++ .garden-name-prompt { flex-wrap:wrap; justify-content:center; gap:0; }
++ .garden-name-prompt button { font-size:18px; }
++}
++
++.cognitive-garden .screen-entrance .entrance-content { position:absolute; top:50%; left:50%; width:min(800px,90%); padding:0; transform:translate(-50%,-50%); }
++.cognitive-garden .screen-entrance .magic-entry { margin:0 auto; }
++.entrance-identity { position:absolute; bottom:calc(100% + 28px); left:50%; width:min(800px,90vw); transform:translateX(-50%); pointer-events:none; }
++.entrance-identity h1 { margin:0; }
+diff --git a/app/entrance.css b/app/entrance.css
+new file mode 100644
+--- /dev/null
++++ b/app/entrance.css
+@@ -0,0 +1,199 @@
++/* Entrance-only polish. Keep the existing garden palette and typefaces. */
++.screen-entrance {
++  overflow: hidden;
++}
++
++.screen-entrance .entrance-content {
++  position: relative;
++  z-index: 1;
++  transform: translateX(-5vw);
++}
++
++.entrance-copy {
++  position: relative;
++  isolation: isolate;
++}
++
++.entrance-copy::before {
++  content: '';
++  position: absolute;
++  inset: -140px -190px;
++  z-index: -1;
++  background: radial-gradient(ellipse at center, #fff 0%, #ffffffb3 30%, #fff0 72%);
++  opacity: .4;
++  pointer-events: none;
++}
++
++.screen-entrance h1 {
++  font-size: 63.8px; /* Existing 58px × 1.1 */
++  font-weight: 600;
++}
++
++.screen-entrance .enter-garden {
++  position: relative;
++  isolation: isolate;
++  overflow: hidden;
++  background: rgba(60, 90, 60, .8);
++  -webkit-backdrop-filter: blur(4px);
++  backdrop-filter: blur(4px);
++  border: 1px solid #ffffff38;
++  box-shadow: 0 5px 20px #31463a12;
++  transition: transform 450ms ease, background 450ms ease,
++    border-color 450ms ease, box-shadow 450ms ease;
++}
++
++.screen-entrance .enter-garden:disabled {
++  opacity: 1;
++}
++
++.screen-entrance .enter-garden::after {
++  content: '';
++  position: absolute;
++  top: 50%;
++  left: 50%;
++  width: 64px;
++  height: 64px;
++  border-radius: 50%;
++  background: radial-gradient(circle, #ffffff2e, #fff0 72%);
++  opacity: 0;
++  transform: translate(-50%, -50%) scale(0);
++  pointer-events: none;
++}
++
++.entrance-landscape-frame,
++.entrance-landscape-motion {
++  position: absolute;
++  inset: 0;
++}
++
++.entrance-landscape-frame {
++  z-index: -3;
++  overflow: hidden;
++  pointer-events: none;
++}
++
++.entrance-landscape-motion {
++  animation: entrance-breathe 20s ease-in-out alternate infinite;
++}
++
++.screen-entrance .entrance-landscape-motion .garden-landscape {
++  z-index: 0;
++  object-position: right bottom;
++}
++
++.garden-path-hover {
++  position: absolute;
++  inset: 35% 0 0 58%;
++  z-index: 0;
++}
++
++.garden-gate-glow {
++  position: absolute;
++  top: 52%;
++  left: 85%;
++  width: 140px;
++  height: 95px;
++  transform: translate(-50%, -50%);
++  background: radial-gradient(ellipse, #fffde6b3, #fffbe235 35%, #fff0 72%);
++  filter: blur(8px);
++  opacity: 0;
++}
++
++@media (hover: hover) and (pointer: fine) {
++  .screen-entrance .enter-garden:hover:not(:disabled) {
++    transform: scale(1.05);
++    background: rgba(60, 90, 60, .9);
++    border-color: #ffffffa6;
++    box-shadow: 0 0 18px #ffffff40, 0 6px 22px #31463a18;
++  }
++
++  .screen-entrance:has(.garden-path-hover:hover) .garden-gate-glow {
++    animation: gate-breathe 3.5s ease-in-out infinite;
++  }
++}
++
++.screen-entrance.scene-entering .entrance-content {
++  animation: entrance-copy-away 750ms ease-in-out both;
++}
++
++.screen-entrance.scene-entering .entrance-landscape-frame {
++  animation: entrance-walk 750ms ease-in-out both;
++}
++
++.screen-entrance.scene-entering .enter-garden::after {
++  animation: entrance-ripple 650ms ease-out both;
++}
++
++.entry-transition-light {
++  position: fixed;
++  inset: 0;
++  z-index: 30;
++  overflow: hidden;
++}
++
++.entry-transition-light::before {
++  content: '';
++  position: absolute;
++  inset: -25%;
++  background: radial-gradient(ellipse at center, #fffef8 0%, #fffef8eb 25%, #fffef800 70%);
++  animation: entrance-light 750ms ease-in-out both;
++}
++
++.entry-transition-light.is-arriving::before {
++  animation: entrance-light-away 550ms ease-out both;
++}
++
++@keyframes entrance-breathe {
++  from { transform: scale(1); }
++  to { transform: scale(1.03); }
++}
++
++@keyframes gate-breathe {
++  0%, 100% { opacity: .08; }
++  50% { opacity: .3; }
++}
++
++@keyframes entrance-copy-away {
++  from { opacity: 1; }
++  to { opacity: 0; }
++}
++
++@keyframes entrance-walk {
++  from { transform: scale(1); opacity: 1; }
++  to { transform: scale(1.07); opacity: 0; }
++}
++
++@keyframes entrance-ripple {
++  0% { transform: translate(-50%, -50%) scale(.1); opacity: .65; }
++  100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
++}
++
++@keyframes entrance-light {
++  from { transform: scale(.35); opacity: 0; }
++  to { transform: scale(2.4); opacity: 1; }
++}
++
++@keyframes entrance-light-away {
++  from { transform: scale(2.4); opacity: 1; }
++  to { transform: scale(2.55); opacity: 0; }
++}
++
++@media (min-aspect-ratio: 16/9) {
++  .garden-gate-glow { left: 89%; }
++}
++
++@media (max-width: 520px) {
++  .screen-entrance h1 { font-size: 48.4px; } /* Existing 44px × 1.1 */
++  .entrance-copy::before { inset: -110px -65px; }
++  .screen-entrance .entrance-landscape-motion .garden-landscape { object-position: 90% bottom; }
++  .garden-gate-glow { left: 83%; width: 100px; }
++}
++
++/* Decorative motion is optional; reduced motion never blocks entry. */
++@media (prefers-reduced-motion: reduce) {
++  .entry-transition-light { display: none; }
++  .screen-entrance .enter-garden:hover:not(:disabled) { transform: none; }
++}
++
++.quiet-motion .entry-transition-light { display: none; }
++.quiet-motion .screen-entrance .enter-garden:hover:not(:disabled) { transform: none; }
+diff --git a/app/garden.css b/app/garden.css
+index 2cbf92b..88a43b9 100644
+--- a/app/garden.css
++++ b/app/garden.css
+@@ -60,18 +60,6 @@ h1,h2,h3,p { margin-top:0; }
+ .petal-light { display:none; position:absolute; width:4px; height:4px; border-radius:50%; background:#ffffc8; box-shadow:0 0 12px 3px #f5e8afaa; }
+ .freshly-bloomed .petal-light { display:block; animation:petal-glimmer 3.5s ease-out both; }
+ .light-one { top:25%; left:25%; }.light-two { top:40%; right:20%; animation-delay:.3s!important; }
+-.saved-flower { position:absolute; border:0; background:none; padding:0; text-align:center; z-index:1; width:136px; height:210px; bottom:88px; }
+-.saved-flower:hover .garden-flower { transform:translateY(-4px); }
+-.saved-flower > .garden-flower { height:160px; transition:transform .5s; }
+-.saved-flower-0 { left:17%; bottom:105px; width:123px; height:190px; }
+-.saved-flower-0 > .garden-flower { height:140px; }
+-.saved-flower-1 { left:29%; bottom:60px; width:135px; height:200px; }
+-.saved-flower-1 > .garden-flower { height:148px; }
+-.saved-flower-2 { right:17%; bottom:88px; }
+-.flower-nameplate { display:inline-flex; align-items:center; justify-content:center; gap:4px; max-width:170px; padding:8px 11px; color:#4e6545; background:#fffdf2eb; border:1px solid #d3d8ba; border-radius:24px; white-space:nowrap; font-size:13px; box-shadow:0 2px 10px #53652b08; }
+-.saved-flower small { display:block; font-size:10px; margin:5px 0 0; color:#536844; text-shadow:0 1px 5px #fff; }
+-.scene-caption { position:absolute; left:0; bottom:0; right:0; display:flex; align-items:center; justify-content:center; gap:12px; font-size:12px; letter-spacing:1.5px; color:#637052; }
+-.scene-caption > span { height:1px; width:32px; background:#b9c3a1; }
+ .garden-input-area { text-align:center; padding:27px 24px 10px; }
+ .input-actions { display:flex; justify-content:center; align-items:center; gap:22px; flex-wrap:wrap; }
+ .garden-primary { display:inline-flex; justify-content:center; align-items:center; gap:11px; border:1px solid var(--garden-green); border-radius:35px; padding:16px 27px; min-height:62px; color:#fffdf6; background:var(--garden-green); font-size:20px; box-shadow:0 5px 16px #45664d12; }
+@@ -86,14 +74,8 @@ h1,h2,h3,p { margin-top:0; }
+ .garden-storage-error { color:#765b3e; background:#f1eadb; padding:15px; border-radius:8px; max-width:700px; margin:15px auto; font-size:16px; line-height:1.9; }
+ .last-shared { max-width:620px; margin:20px auto 0; font-size:17px; color:#59694e; line-height:1.9; overflow-wrap:anywhere; }
+ .last-shared > span { display:inline-block; font-size:12px; color:#6c765f; padding:3px 9px; margin-right:8px; background:#eaf0df; border-radius:15px; vertical-align:middle; }
+-.garden-keepsakes { max-width:1040px; margin:14px auto 0; border-top:1px solid #d7deca; border-bottom:1px solid #d7deca; padding:21px 6px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+-.garden-keepsakes > div { display:flex; align-items:center; gap:13px; }.little-leaf { color:#8e9c73; }
+-.garden-keepsakes p { margin:0; color:#647153; font:18px/1.8 var(--garden-serif); }.garden-keepsakes em { font-style:normal; }
+ .garden-text-button { border:0; background:none; display:inline-flex; align-items:center; justify-content:center; gap:9px; color:#536b4b; min-height:48px; padding:10px 3px; font-size:17px; text-underline-offset:5px; }
+ .garden-text-button:hover { text-decoration:underline; }
+-.garden-footer { max-width:1040px; margin:auto; padding:23px 6px 25px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; color:#637153; font-size:12px; }
+-.garden-footer > span,.garden-footer > button { display:flex; align-items:center; gap:7px; }.garden-footer > button { background:transparent; border:0; padding:10px 0; min-height:44px; font-size:12px; color:#5a6c50; }.garden-footer > p { margin:0; font:14px/1.8 var(--garden-serif); color:#687557; }
+-.footer-settings { text-decoration:underline; text-underline-offset:4px; }
+ .family-panel { position:absolute; z-index:6; top:260px; right:4%; width:280px; padding:18px 20px 23px; background:#fffef6f7; border:1px solid #d8dfc9; border-radius:17px; box-shadow:0 12px 40px #45593616; backdrop-filter:blur(12px); }
+ .family-panel-top { display:flex; align-items:center; justify-content:space-between; gap:10px; color:#667952; font-size:13px; }.family-panel-top > span { display:flex; align-items:center; gap:7px; }
+ .family-panel h2 { font:24px/1.6 var(--garden-serif); margin:10px 0 20px; }
+@@ -127,21 +109,19 @@ h1,h2,h3,p { margin-top:0; }
+ @keyframes gentle-spin { to { transform:rotate(360deg); } }
+ @keyframes gentle-grow { from { transform:scale(.88); opacity:.6; } to { transform:scale(1); opacity:1; } }
+ 
+-@media (min-width:1500px) { .garden-scene { height:710px; }.current-flower-place { bottom:80px; height:310px; }.current-flower-place > .garden-flower { height:280px; }.saved-flower-0 { bottom:138px; }.saved-flower-1 { bottom:88px; }.saved-flower-2 { bottom:118px; } }
+-@media (max-width:1100px) { .garden-keepsakes,.garden-footer { margin-left:6%; margin-right:6%; }.garden-scene { height:610px; }.garden-introduction h1 { font-size:29px; }.companion-bubble { width:580px; }.bubble-message { font-size:26px; }.current-flower-place { bottom:54px; }.saved-flower-0 { left:10%; }.saved-flower-1 { left:23%; bottom:52px; }.saved-flower-2 { right:10%; }.family-panel { right:2%; width:260px; top:255px; } }
+-@media (max-width:760px) { .garden-header { height:98px; margin:0 5%; gap:12px; }.garden-brand { font-size:25px; gap:8px; }.brand-sprout { width:38px; height:44px; }.garden-brand small { font-size:8px; letter-spacing:4px; }.garden-header-actions { gap:8px; }.soft-button,.rest-button { font-size:14px; padding:11px 14px; min-height:48px; }.companion-toggle span { display:none; }.companion-toggle { width:48px; padding:0; }.garden-scene { height:620px; }.companion-bubble { width:78%; padding:12px 22px 20px; }.garden-introduction h1 { font-size:28px; letter-spacing:2px; }.bubble-message { font-size:25px; }.saved-flower-0 { left:4%; width:102px; }.saved-flower-1 { display:none; }.saved-flower-2 { right:4%; width:105px; }.flower-nameplate { font-size:12px; padding:7px 8px; }.family-panel { right:16px; top:255px; width:265px; }.garden-footer p { width:100%; text-align:center; }.input-actions { gap:14px; }.voice-button { min-width:230px; }.keep-memory-button { min-height:54px; }.garden-footer { justify-content:center; gap:15px; } }
++@media (min-width:1500px) { .garden-scene { height:710px; }.current-flower-place { bottom:80px; height:310px; }.current-flower-place > .garden-flower { height:280px; } }
++@media (max-width:1100px) {.garden-scene { height:610px; }.garden-introduction h1 { font-size:29px; }.companion-bubble { width:580px; }.bubble-message { font-size:26px; }.current-flower-place { bottom:54px; }.family-panel { right:2%; width:260px; top:255px; } }
++@media (max-width:760px) { .garden-header { height:98px; margin:0 5%; gap:12px; }.garden-brand { font-size:25px; gap:8px; }.brand-sprout { width:38px; height:44px; }.garden-brand small { font-size:8px; letter-spacing:4px; }.garden-header-actions { gap:8px; }.soft-button,.rest-button { font-size:14px; padding:11px 14px; min-height:48px; }.companion-toggle span { display:none; }.companion-toggle { width:48px; padding:0; }.garden-scene { height:620px; }.companion-bubble { width:78%; padding:12px 22px 20px; }.garden-introduction h1 { font-size:28px; letter-spacing:2px; }.bubble-message { font-size:25px; }.family-panel { right:16px; top:255px; width:265px; }.input-actions { gap:14px; }.voice-button { min-width:230px; }.keep-memory-button { min-height:54px; } }
+ @media (max-width:520px) {
+   .garden-header { height:87px; margin:0 18px; gap:10px; }.garden-brand { font-size:22px; gap:7px; letter-spacing:-.8px; }.brand-sprout { width:31px; height:38px; }.brand-sprout svg { width:23px; }.garden-brand small { font-size:7px; margin-top:6px; letter-spacing:3.7px; }.garden-header-actions { gap:6px; }.companion-toggle { width:40px; min-height:44px; }.rest-button { padding:10px 12px; font-size:13px; min-height:44px; gap:5px; }.rest-button svg { width:15px; }
+   .garden-scene { height:570px; }.garden-landscape { object-position:52% center; }.scene-wash { background:linear-gradient(to bottom,var(--garden-paper) 0%,#f9f7efcc 15%,#f9f7ef20 50%,#f9f7ef00 85%,var(--garden-paper) 100%); }.garden-introduction { padding-top:26px; }.garden-introduction > p { font-size:7px; letter-spacing:2px; margin-bottom:12px; }.garden-introduction h1 { font-size:25px; letter-spacing:1px; }.companion-bubble { width:calc(100% - 38px); margin-top:22px; padding:13px 18px 20px; border-radius:19px; }.bubble-topline { font-size:11px; margin-bottom:8px; }.bubble-listen { font-size:12px; min-height:40px; padding-right:0; }.bubble-message { font-size:25px; line-height:1.7; margin-bottom:10px; }.bubble-footnote { font-size:13px; }.thinking-copy { font-size:23px; }
+   .current-flower-place { width:175px; height:215px; bottom:55px; }.current-flower-place > .garden-flower { width:170px; height:210px; }.current-flower-label { width:280px; bottom:-20px; font-size:14px; }.new-flower-story { font-size:12px; bottom:-57px; }
+-  .saved-flower-0 { left:1%; bottom:92px; width:88px; height:157px; }.saved-flower-0 > .garden-flower { height:105px; }.saved-flower-2 { right:1%; bottom:88px; width:91px; height:155px; }.saved-flower-2 > .garden-flower { height:105px; }.flower-nameplate { font-size:10px; padding:7px 7px; gap:0; }.flower-nameplate svg { width:11px; }.saved-flower small { font-size:9px; }.scene-caption { font-size:10px; letter-spacing:.4px; gap:8px; }.scene-caption > span { width:15px; }
+   .garden-input-area { padding:25px 18px 0; }.input-actions { gap:10px; }.voice-button { min-width:221px; min-height:67px; font-size:19px; padding:16px 22px; }.write-button { font-size:16px; gap:6px; padding:12px 8px; min-height:60px; }.write-button svg { width:18px; }.keep-memory-button { margin-top:5px; min-height:52px; padding:11px 20px; font-size:17px; }.input-reassurance { font-size:12px; margin-top:13px; }.garden-notification { font-size:13px; margin-top:9px; }.last-shared { font-size:19px; text-align:left; padding:0 5px; margin-top:17px; }
+-  .garden-keepsakes { margin:12px 23px 0; padding:18px 0; flex-direction:column; gap:7px; }.garden-keepsakes p { font-size:17px; }.garden-keepsakes .garden-text-button { font-size:16px; min-height:48px; }.garden-footer { margin:0 23px; padding:17px 0 24px; gap:3px 18px; font-size:10px; }.garden-footer > button { font-size:10px; }.garden-footer > p { font-size:13px; }.footer-settings { display:none; }
+   .family-panel { top:247px; left:18px; right:18px; width:auto; padding:16px 21px 20px; }.family-panel h2 { margin:6px 0 13px; font-size:23px; }.family-hint { padding:12px 15px; }.family-hint p { font-size:18px; }.family-hint svg { display:none; }.family-guidance { font-size:14px; margin:7px 0 14px; }.hint-next { font-size:14px; }.family-panel .garden-secondary { min-height:53px; }
+   .garden-dialog { width:calc(100% - 24px); max-height:calc(100dvh - 24px); border-radius:17px; }.dialog-paper { padding:20px 20px 25px; }.dialog-heading { gap:6px; margin-bottom:18px; flex-wrap:wrap; }.dialog-heading h2 { font-size:24px; line-height:1.6; flex-basis:calc(100% - 55px); }.dialog-heading .garden-icon-button { order:1; }.dialog-rest { order:2; margin-top:2px; min-height:44px; font-size:14px; }.dialog-lead { font-size:22px; }.dialog-note { font-size:17px; }.welcome-notes li { font-size:18px; gap:8px; }.dialog-actions { gap:10px; }.dialog-actions .garden-primary,.dialog-actions .garden-secondary { width:100%; font-size:19px; min-height:62px; }.garden-dialog textarea,.garden-dialog input:not([type=checkbox]) { padding:13px 14px; font-size:22px; }.dialog-context { font-size:22px; }.garden-field-label { font-size:18px; }
+   .flower-collection { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }.collection-flower-card { padding:10px 10px 17px; }.collection-flower-card > div { height:145px; max-width:100px; }.collection-flower-card > span { font-size:17px; }.story-layout { grid-template-columns:1fr; gap:15px; }.story-flower { height:190px; }.story-flower > .garden-flower { height:165px; }.story-record-label { text-align:center; }.story-excerpts blockquote p { font-size:22px; }.garden-settings > label { font-size:20px; }.garden-settings small { font-size:16px; }.recording-status { font-size:17px; }.live-transcript { font-size:22px; }
+ }
+-@media (max-width:370px) { .garden-brand { font-size:19px; }.brand-sprout { display:none; }.garden-header-actions { gap:5px; }.rest-button { padding:9px 10px; }.garden-introduction h1 { font-size:23px; }.input-actions { gap:0; }.voice-button { min-width:204px; font-size:18px; padding:15px 18px; }.write-button { font-size:15px; padding:10px 6px; }.bubble-message { font-size:23px; }.saved-flower-0 { width:76px; }.saved-flower-2 { width:76px; }.flower-nameplate { max-width:90px; font-size:9px; }.current-flower-place { width:145px; }.current-flower-place > .garden-flower { width:145px; } }
++@media (max-width:370px) { .garden-brand { font-size:19px; }.brand-sprout { display:none; }.garden-header-actions { gap:5px; }.rest-button { padding:9px 10px; }.garden-introduction h1 { font-size:23px; }.input-actions { gap:0; }.voice-button { min-width:204px; font-size:18px; padding:15px 18px; }.write-button { font-size:15px; padding:10px 6px; }.bubble-message { font-size:23px; }.current-flower-place { width:145px; }.current-flower-place > .garden-flower { width:145px; } }
+ @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+ .quiet-motion *,.quiet-motion *::before,.quiet-motion *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+ 
+@@ -150,7 +130,6 @@ h1,h2,h3,p { margin-top:0; }
+ .current-flower-place { position:relative; left:auto; bottom:auto; transform:none; margin:25px auto 0; width:260px; height:240px; }
+ .current-flower-place > .garden-flower { height:230px; }
+ .scene-has-bloom { padding-bottom:102px; }
+-.scene-caption { bottom:8px; }
+ .collection-flower-card > span { font-size:22px; }
+ @media (min-width:1500px) { .garden-scene { min-height:710px; }.current-flower-place { height:270px; }.current-flower-place > .garden-flower { height:260px; } }
+ @media (max-width:1100px) { .garden-scene { min-height:610px; } }
+@@ -186,9 +165,7 @@ body { font-family:Arial,Helvetica,system-ui,sans-serif; }
+ .topic-label { font-size:16px; line-height:1.6; color:#52634c; }
+ .topic-note { margin-top:10px; }
+ .resume-story { margin:8px auto 15px; }
+-.garden-keepsakes em { margin-left:.3em; }
+ .screen-garden:has(.companion-bubble):not(:has(.current-flower-place)) { min-height:550px; }
+-.flower-nameplate { white-space:normal; overflow-wrap:anywhere; line-height:1.4; }
+ .garden-header-actions .rest-button { white-space:nowrap; }
+ @media (max-width:760px) {
+  .entrance-content { padding:85px 0 60px; }
+@@ -227,8 +204,72 @@ body { font-family:Arial,Helvetica,system-ui,sans-serif; }
+  .topic-bubble > svg { display:none; }
+  .topic-label { font-size:16px; max-width:230px; }
+  .topic-note { font-size:13px; }
+- .scene-caption { padding:0 18px; font-size:11px; letter-spacing:0; text-align:center; }
+  .input-actions { flex-wrap:wrap; }
+  .bubble-message { font-size:25px; line-height:1.5; }
+  .bubble-topline { font-size:11px; }
+ }
++
++/* M1–M9: additive states and controls; existing palette, type and art retained. */
++.screen-entrance { min-height:100dvh; align-items:center; }
++.screen-entrance .entrance-content { padding:60px 0; }
++.screen-entrance h1 { font-size:58px; }
++.scene-entering .entrance-content { animation:garden-enter 750ms ease-in-out both; pointer-events:none; }
++.topic-bubble { animation:topic-arrive 650ms ease-out backwards; }
++.topic-bubble.topic-selected { border-radius:24px; transition:transform 650ms ease, border-radius 650ms ease; }
++.is-choosing .topic-bubble { animation:none; transition:opacity 450ms ease,transform 650ms ease,border-radius 650ms ease; }
++.is-choosing .topic-bubble:not(.topic-selected) { opacity:0; transform:translateY(8px); pointer-events:none; }
++.is-choosing .topic-selected { opacity:1; transform:translateY(-8px); background:var(--garden-paper); }
++.topic-selected .topic-title { font-size:24px; line-height:1.45; }
++.topic-selected .topic-number,.topic-selected > svg { display:none; }
++.topic-refresh { margin:0 auto 6px; }
++.screen-garden .companion-bubble { animation:companion-arrive 400ms ease-out both; }
++.growth-7 .flower-botanical { transform:scale(1); transition:transform 3s ease-in-out; }
++.sensory-branches { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
++.garden-contact-options { padding:6px 0 15px; text-align:center; }
++.garden-contact-options a { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
++.garden-contact-options .dialog-note { font-size:16px; }
++.garden-drawer-handle { position:fixed; z-index:8; top:48%; right:0; min-width:48px; min-height:64px; border:1px solid var(--garden-line); border-right:0; border-radius:34px 0 0 34px; background:#f9f7efed; color:var(--garden-green); display:grid; place-items:center; box-shadow:0 4px 16px #31463a0a; }
++.garden-drawer-handle:hover { background:var(--garden-sage); }
++.garden-activities-drawer { top:0; right:0; bottom:0; left:auto; margin:0; width:min(430px,100%); max-width:none; height:100dvh; max-height:100dvh; border-radius:22px 0 0 22px; animation:drawer-arrive 400ms ease-out both; }
++.garden-activities-drawer .dialog-paper { min-height:100%; padding:26px 26px 35px; }
++.garden-activities-drawer .dialog-heading h2 { font-size:27px; }
++.garden-activity-list { display:grid; gap:14px; margin:20px 0; }
++.garden-activity-card { display:flex; align-items:flex-start; gap:15px; border:1px solid var(--garden-line); border-radius:18px; padding:19px 17px; color:var(--garden-ink); text-decoration:none; background:var(--garden-paper); }
++.garden-activity-card:hover { background:var(--garden-sage); }
++.garden-activity-card > svg { flex-shrink:0; margin-top:3px; color:var(--garden-green); }
++.garden-activity-card strong { display:block; font:23px/1.35 var(--garden-serif); }
++.garden-activity-card span span { display:block; font-size:17px; line-height:1.65; margin:8px 0; color:var(--garden-secondary); }
++.garden-activity-card small { display:inline-block; padding:5px 9px; border-radius:14px; font-size:13px; background:var(--garden-sage); color:var(--garden-ink); }
++.garden-activity-card em { display:block; font-size:14px; font-style:normal; color:var(--garden-secondary); margin-top:9px; }
++.garden-activity-page { min-height:100dvh; max-width:1100px; margin:auto; padding:28px; }
++.garden-activity-page header { display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid var(--garden-line); padding-bottom:22px; }
++.garden-activity-page header > span { font:24px var(--garden-serif); }
++.garden-activity-page a { text-decoration:none; }
++.garden-activity-page section { max-width:620px; margin:100px auto; text-align:center; }
++.garden-activity-page section > svg { color:var(--garden-green); margin-bottom:28px; }
++.garden-activity-page h1 { font:42px/1.3 var(--garden-serif); }
++.garden-activity-page section > p:not(.garden-eyebrow) { font-size:21px; line-height:1.8; color:var(--garden-secondary); }
++.garden-activity-page .garden-primary { margin-top:25px; }
++.garden-air { position:absolute; inset:0; z-index:-1; pointer-events:none; overflow:hidden; }
++.garden-air::before { content:''; position:absolute; bottom:14%; left:calc(50% - 95px); width:190px; height:35px; background:radial-gradient(ellipse,#cbbd9a38,transparent 72%); }
++.garden-air span { position:absolute; width:4px; height:4px; border-radius:50%; background:#fffef2; box-shadow:0 0 14px #fff9cf; opacity:.65; animation:garden-air 9s ease-in-out infinite; }
++.garden-air span:nth-child(1) { top:63%; left:32%; }
++.garden-air span:nth-child(2) { top:72%; left:63%; animation-delay:3s; }
++.garden-air span:nth-child(3) { top:82%; left:48%; animation-delay:6s; }
++@keyframes garden-enter { to { opacity:0; transform:translateY(-6px); } }
++@keyframes topic-arrive { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
++@keyframes companion-arrive { from { opacity:.5; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
++@keyframes drawer-arrive { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:translateX(0); } }
++@keyframes garden-air { 50% { transform:translateY(-12px); opacity:.25; } }
++@media (max-width:520px) {
++ .screen-entrance h1 { font-size:44px; }
++ .garden-drawer-handle { min-width:44px; min-height:56px; top:54%; }
++ .garden-activity-page { padding:20px; }
++ .garden-activity-page header { align-items:flex-start; flex-direction:column-reverse; gap:10px; }
++ .garden-activity-page h1 { font-size:34px; }
++ .garden-activity-page section { margin:65px auto; }
++ .garden-activities-drawer .dialog-heading h2 { flex-basis:calc(100% - 50px); }
++ .topic-refresh { font-size:16px; }
++}
++
++.garden-activity-card > .garden-activity-icon { width:48px; height:48px; margin-top:0; }.garden-activity-page section > .garden-activity-icon { width:76px; height:76px; }
+diff --git a/app/layout.tsx b/app/layout.tsx
+index 2a2cdf2..ce654a2 100644
+--- a/app/layout.tsx
++++ b/app/layout.tsx
+@@ -1,3 +1,5 @@
+ import './garden.css';
++import './entrance.css';
++import './cognitive.css';
+ export const metadata = { title: 'Memory Garden', description: 'A quiet garden for your stories and the people you hold dear.' };
+ export default function RootLayout({ children }: { children: React.ReactNode }) { return <html lang='en'><body>{children}</body></html>; }
+diff --git a/components/GardenActivities.tsx b/components/GardenActivities.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/GardenActivities.tsx
+@@ -0,0 +1,26 @@
++'use client';
++
++import { useRef, useState } from 'react';
++import Link from 'next/link';
++import { Leaf, X } from 'lucide-react';
++import GardenDialog from './GardenDialog';
++import GardenActivityIcon from './GardenActivityIcon';
++import { gardenActivities } from '../lib/garden-activities';
++
++export default function GardenActivities({ onOpen }: { onOpen: () => void }) {
++  const [open, setOpen] = useState(false);
++  const handle = useRef<HTMLButtonElement>(null);
++  function close() { setOpen(false); requestAnimationFrame(() => handle.current?.focus()); }
++  return <>
++    <button ref={handle} className="garden-drawer-handle" aria-label="Garden activities" aria-expanded={open} aria-haspopup="dialog" onClick={() => { onOpen(); setOpen(true); }}><Leaf size={25} strokeWidth={1.4} /></button>
++    {open && <GardenDialog className="garden-activities-drawer" title="Other quiet corners" onClose={close}>
++      <p className="dialog-note">Something else to explore, whenever you choose.</p>
++      <nav className="garden-activity-list" aria-label="Garden activities">{gardenActivities.map(activity => {
++        return <Link href={'/activities/' + activity.id} className="garden-activity-card" key={activity.id}>
++          <GardenActivityIcon kind={activity.icon} /><span><strong>{activity.name}</strong><span>{activity.description}</span><small>{activity.audience}</small><em>Coming soon</em></span>
++        </Link>;
++      })}</nav>
++      <button className="garden-text-button" onClick={close}><X size={17} />Close these corners</button>
++    </GardenDialog>}
++  </>;
++}
+diff --git a/components/GardenActivityIcon.tsx b/components/GardenActivityIcon.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/GardenActivityIcon.tsx
+@@ -0,0 +1,22 @@
++export default function GardenActivityIcon({ kind }: { kind: 'picture' | 'sounds' | 'notes' }) {
++  return <svg className="garden-activity-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
++    <rect x="1" y="1" width="46" height="46" rx="16" fill="var(--garden-sage)" stroke="none" />
++    {kind === 'picture' && <>
++      <rect x="9" y="9" width="25" height="29" rx="3" transform="rotate(-8 9 9)" fill="var(--garden-paper)" />
++      <rect x="15" y="12" width="25" height="29" rx="3" fill="var(--garden-paper)" />
++      <path d="M19 30l6-7 5 5 3-3 3 5M19 33h17M24 37h7" />
++      <circle cx="33" cy="19" r="2.4" />
++    </>}
++    {kind === 'sounds' && <>
++      <path d="M12 20h5l7-6v20l-7-6h-5z" fill="var(--garden-paper)" />
++      <path d="M29 19c3 3 3 7 0 10M33 14c6 5 6 15 0 20" />
++      <path d="M14 36c2 2 5 2 7 0" opacity=".65" />
++    </>}
++    {kind === 'notes' && <>
++      <path d="M13 9h17l7 7v23H13z" fill="var(--garden-paper)" />
++      <path d="M30 9v8h7M18 21h12M18 26h9M18 31h6" />
++      <path d="M29 34c0-5 4-7 9-7-1 5-4 8-9 7z" fill="var(--garden-sage)" />
++      <path d="M28 37l7-7" />
++    </>}
++  </svg>;
++}
+diff --git a/components/GardenApp.tsx b/components/GardenApp.tsx
+index 1db0c5e..307360e 100644
+--- a/components/GardenApp.tsx
++++ b/components/GardenApp.tsx
+@@ -5,15 +5,42 @@ import Image from 'next/image';
+ import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, Flower2, Heart, Leaf, LoaderCircle, Mic, Pause, PenLine, Play, Settings2, ShieldCheck, Sprout, Square, Users, Volume2, VolumeX, X } from 'lucide-react';
+ import GardenFlower from './GardenFlower';
+ import GardenDialog from './GardenDialog';
+-import { COMFORT, GARDEN_KEY, GardenEntry, GardenMemory, GardenStore, MAX_EXPRESSION, OPENING, addFamily, addPatient, finishMemory, flowerNames, isStopSignal, localReply, newMemory, readGarden, topics, writeGarden } from '../lib/garden';
++import GardenActivities from './GardenActivities';
++import MagicGardenEntry from './MagicGardenEntry';
++import GardenTopicCue from './GardenTopicCue';
++import GardenCompanionBubble from './GardenCompanionBubble';
++import GardenCanvas from './GardenCanvas';
++import GardenNameEditor from './GardenNameEditor';
++import { DEFAULT_GARDEN_NAME, NAME_PROMPT_KEY, gardenLabel, readGardenName, writeGardenName } from '../lib/garden-name';
++import { GardenContact, normalisePhone, readContact, writeContact } from '../lib/garden-contact';
++import { COMFORT, REASSURANCE, GARDEN_KEY, GardenEntry, GardenMemory, GardenStore, MAX_EXPRESSION, OPENING, addFamily, addPatient, finishMemory, flowerNames, isStopSignal, localReply, newMemory, readGarden, resetGarden, topics, writeGarden } from '../lib/garden';
+ 
+ type VoiceResult = { results: { length: number; [index: number]: { isFinal: boolean; [index: number]: { transcript: string } } } };
+ type SpeechInput = { continuous: boolean; interimResults: boolean; lang: string; onresult: ((event: VoiceResult) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start: () => void; stop: () => void; abort: () => void };
+ type VoiceWindow = Window & { SpeechRecognition?: new () => SpeechInput; webkitSpeechRecognition?: new () => SpeechInput };
+-type Modal = 'welcome' | 'text' | 'review' | 'finish' | 'pause' | 'collection' | 'story' | 'settings' | 'mic' | 'family-consent' | 'family-note' | null;
++type Modal = 'welcome' | 'text' | 'review' | 'finish' | 'pause' | 'collection' | 'story' | 'settings' | 'mic' | 'family-consent' | 'family-note' | 'contact' | 'name' | null;
+ 
+ export default function GardenApp() {
+   const [screen, setScreen] = useState<'entrance' | 'topics' | 'garden'>('entrance');
++  const [entering, setEntering] = useState(false);
++  const [arriving, setArriving] = useState(false);
++  const [topicSet, setTopicSet] = useState(0);
++  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
++  const [previewTopic, setPreviewTopic] = useState<string | null>(null);
++  const [ownerName, setOwnerName] = useState(DEFAULT_GARDEN_NAME);
++  const [showNamePrompt, setShowNamePrompt] = useState(false);
++  const [voiceVolume, setVoiceVolume] = useState(0.9);
++  const [voiceRate, setVoiceRate] = useState(0.8);
++  const [speechNotice, setSpeechNotice] = useState('');
++  const [userInteraction, setUserInteraction] = useState(0);
++  const speechSequence = useRef(0);
++  const speechActive = useRef(false);
++  const [contact, setContact] = useState<GardenContact | null>(null);
++  const [contactName, setContactName] = useState('');
++  const [contactPhone, setContactPhone] = useState('');
++  const [contactError, setContactError] = useState('');
++  const contactReturn = useRef(false);
++  const transitions = useRef<ReturnType<typeof setTimeout>[]>([]);
+   const [garden, setGarden] = useState<GardenStore>({ version: 1, flowers: [], current: null });
+   const gardenRef = useRef(garden);
+   const [loaded, setLoaded] = useState(false);
+@@ -40,7 +67,7 @@ export default function GardenApp() {
+   const [aiAvailable, setAiAvailable] = useState(false);
+   const [cloudAllowed, setCloudAllowed] = useState(false);
+   const [reduceMotion, setReduceMotion] = useState(false);
+-  const [autoRead, setAutoRead] = useState(false);
++  const [autoRead, setAutoRead] = useState(true);
+   const [micAccepted, setMicAccepted] = useState(false);
+   const [requestError, setRequestError] = useState(false);
+   const [hasCorruptData, setHasCorruptData] = useState(false);
+@@ -57,9 +84,17 @@ export default function GardenApp() {
+   const waitingNotice = useRef(false);
+ 
+   useEffect(() => {
++    const name = readGardenName(window.location.search); setOwnerName(name);
++    const invitation = new URLSearchParams(window.location.search);
++    if (invitation.has('name')) { invitation.delete('name'); window.history.replaceState(null, '', window.location.pathname + (invitation.size ? '?' + invitation.toString() : '')); }
+     try {
+       const saved = readGarden();
+       gardenRef.current = saved; setGarden(saved);
++      setShowNamePrompt(name === DEFAULT_GARDEN_NAME && !saved.flowers.length && !saved.current && localStorage.getItem(NAME_PROMPT_KEY) !== 'true');
++      if (new URLSearchParams(window.location.search).get('garden') === '1') {
++        setScreen(saved.current ? 'garden' : 'topics');
++        window.history.replaceState(null, '', '/');
++      }
+       if (saved.current) { paused.current = true; setBubble('Your story is still here. We can continue whenever you feel ready.'); }
+     } catch {
+       setHasCorruptData(true);
+@@ -68,18 +103,34 @@ export default function GardenApp() {
+       gardenRef.current = fallback; setGarden(fallback);
+     }
+     setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+-    setSpeechAvailable('speechSynthesis' in window);
++    setContact(readContact());
++    setSpeechAvailable('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined');
+     setLoaded(true);
+     const controller = new AbortController();
+     fetch('/api/garden', { signal: controller.signal, cache: 'no-store' }).then(response => response.json()).then(data => setAiAvailable(data.available === true)).catch(() => {});
+-    return () => { controller.abort(); request.current?.abort(); voiceEpoch.current++; recognition.current?.abort(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
++    return () => { speechSequence.current++; speechActive.current = false; transitions.current.forEach(clearTimeout); controller.abort(); request.current?.abort(); voiceEpoch.current++; recognition.current?.abort(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
+   }, []);
+ 
++  useEffect(() => { if (screen !== 'entrance' && showNamePrompt) { try { localStorage.setItem(NAME_PROMPT_KEY, 'true'); } catch {} } }, [screen, showNamePrompt]);
++
+   useEffect(() => {
+-    if (!garden.current || garden.current.status !== 'growing' || thinking || recording || modal || waitingNotice.current) return;
+-    const timer = setTimeout(() => { waitingNotice.current = true; setNotification('There is no hurry. We can sit quietly for a while.'); }, 30000);
++    if (screen !== 'garden' || !garden.current || garden.current.status !== 'growing' || thinking || speaking || (modal && modal !== 'text') || waitingNotice.current) return;
++    const timer = setTimeout(() => { waitingNotice.current = true; pauseConversation(); }, 30000);
+     return () => clearTimeout(timer);
+-  }, [garden.current, thinking, recording, modal]);
++  }, [garden.current, thinking, speaking, recording, modal, screen, draft, transcript, userInteraction]);
++
++  function enterGarden() {
++    if (entering || arriving || !loaded) return;
++    stopAudio(); setSpeechNotice('');
++    setEntering(true);
++    transitions.current.push(setTimeout(() => {
++      setScreen('topics'); setEntering(false);
++      if (!reduceMotion) {
++        setArriving(true);
++        transitions.current.push(setTimeout(() => setArriving(false), 550));
++      }
++    }, reduceMotion ? 0 : 750));
++  }
+ 
+   function commit(next: GardenStore) {
+     gardenRef.current = next; setGarden(next);
+@@ -89,24 +140,42 @@ export default function GardenApp() {
+   }
+ 
+   function stopAudio() {
++    speechSequence.current++; speechActive.current = false;
+     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
++    utterance.current = null;
+     setSpeaking(false);
+   }
+ 
+   function readAloud(text: string) {
++    if (speechActive.current && utterance.current?.text === text) return;
+     stopAudio();
+-    if (!speechAvailable) return;
+-    const voice = new SpeechSynthesisUtterance(text);
+-    voice.lang = 'en-US'; voice.rate = 0.8;
+-    voice.onend = () => setSpeaking(false); voice.onerror = () => setSpeaking(false);
+-    utterance.current = voice; setSpeaking(true); window.speechSynthesis.speak(voice);
++    if (!speechAvailable) { setSpeechNotice('Voice is unavailable here. You can read the words instead.'); return; }
++    const token = speechSequence.current;
++    setSpeechNotice('');
++    try {
++      const voice = new SpeechSynthesisUtterance(text);
++      const voices = window.speechSynthesis.getVoices();
++      const english = voices.find(item => item.localService && /^en\b/i.test(item.lang)) || voices.find(item => /^en\b/i.test(item.lang));
++      if (english) voice.voice = english;
++      voice.lang = 'en-US'; voice.rate = voiceRate; voice.pitch = 1; voice.volume = voiceVolume;
++      voice.onend = () => { if (token === speechSequence.current) { speechActive.current = false; setSpeaking(false); } };
++      voice.onerror = event => {
++        if (token !== speechSequence.current) return;
++        speechActive.current = false; setSpeaking(false);
++        if (event.error !== 'canceled' && event.error !== 'interrupted') setSpeechNotice(event.error === 'not-allowed' ? 'Tap to hear the words.' : 'Voice is unavailable right now. You can read the words instead.');
++      };
++      utterance.current = voice; speechActive.current = true; setSpeaking(true);
++      // Keep this call synchronous with hover, touchstart, focus, or click.
++      window.speechSynthesis.speak(voice);
++    } catch { speechActive.current = false; setSpeaking(false); setSpeechNotice('Voice is unavailable right now. You can read the words instead.'); }
+   }
+ 
+-  function stopWork() {
++  function stopWork(keepAudio = false) {
+     epoch.current++; voiceEpoch.current++;
+     request.current?.abort(); request.current = null;
+     recognition.current?.abort(); recognition.current = null;
+-    inFlight.current = false; setThinking(false); setRecording(false); stopAudio();
++    inFlight.current = false; setThinking(false); setRecording(false); if (!keepAudio) stopAudio();
++    setPreviewTopic(null);
+     setFamilyGranted(false); setFamilyOpen(false); setRequestError(false);
+   }
+ 
+@@ -114,7 +183,7 @@ export default function GardenApp() {
+     stopWork(); paused.current = true;
+     const state = gardenRef.current;
+     if (state.current) commit({ ...state, current: { ...state.current, status: 'paused' } });
+-    setBubble(COMFORT); setModal('pause'); setNotification('Your words and your flower are safe here.');
++    setBubble(REASSURANCE); setModal('pause'); setNotification('Your words and your flower are safe here.');
+   }
+ 
+   function resume() {
+@@ -151,14 +220,21 @@ export default function GardenApp() {
+     else requestMic();
+   }
+ 
+-  function chooseTopic(question: string) {
+-    stopWork(); setNotification(''); setDraft('');
++  function chooseTopic(question: string, id: string) {
++    if (selectedTopic) return;
++    setSelectedTopic(id);
++    setShowNamePrompt(false);
++    stopWork(true); setNotification(''); setDraft('');
++    if (autoRead) readAloud(question);
++    transitions.current.push(setTimeout(() => {
+     const state = gardenRef.current;
+     setScreen('garden'); setFeatured(null); setJustBloomed(false);
+-    if (state.current?.entries.some(entry => entry.speaker === 'patient')) { setModal('pause'); return; }
++    const previous = state.current?.entries.some(entry => entry.speaker === 'patient') ? finishMemory(state.current) : null;
+     paused.current = false; waitingNotice.current = false;
+-    commit({ ...state, current: newMemory(question) });
+-    setBubble(question); started.current = Date.now();
++    commit({ ...state, flowers: previous ? [previous, ...state.flowers.filter(flower => flower.id !== previous.id)] : state.flowers, current: newMemory(question) });
++    setBubble(`${REASSURANCE} ${question}`); started.current = Date.now();
++    setSelectedTopic(null);
++    }, reduceMotion ? 0 : 650));
+   }
+ 
+   function requestMic() {
+@@ -233,7 +309,7 @@ export default function GardenApp() {
+       const entry: GardenEntry = { id: crypto.randomUUID(), speaker: 'companion', text: message, createdAt: new Date().toISOString(), mode: cloudAllowed ? 'ai' : 'local' };
+       commit({ ...state, current: { ...state.current, entries: [...state.current.entries, entry] } });
+       setBubble(message);
+-      if (autoRead) readAloud(message);
++      // A new reply stays quiet until the user explores its bubble.
+       if (started.current && Date.now() - started.current > 300000) setTimeToRest(true);
+     } catch {
+       if (token !== epoch.current || paused.current) return;
+@@ -246,7 +322,9 @@ export default function GardenApp() {
+   function submitPatient(text: string) {
+     if (!text.trim() || text.trim().length > MAX_EXPRESSION || inFlight.current || paused.current) return;
+     if (isStopSignal(text)) { pauseConversation(); return; }
+-    const memory = addPatient(ensureSession(), text);
++    const previous = ensureSession();
++    const memory = addPatient(previous, text);
++    if (previous.stage < 7 && memory.stage === 7) setJustBloomed(true);
+     commit({ ...gardenRef.current, current: memory });
+     setDraft(''); setTranscript(''); transcriptRef.current = ''; setModal(null); setNotification(''); waitingNotice.current = false;
+     void replyTo(memory);
+@@ -263,10 +341,10 @@ export default function GardenApp() {
+     const flower = finishMemory({ ...state.current, title: title.trim().slice(0, 100) || state.current.title });
+     if (!flower) return;
+     stopWork(); paused.current = false;
+-    commit({ ...state, flowers: [flower, ...state.flowers], current: null });
+-    setFeatured(flower); setJustBloomed(true); setModal(null); setTimeToRest(false);
++    commit({ ...state, flowers: [flower, ...state.flowers.filter(saved => saved.id !== flower.id)], current: null });
++    setFeatured(flower); setJustBloomed(false); setModal(null); setTimeToRest(false);
+     setBubble('Thank you for sharing. This little moment now has a place in your garden.');
+-    setNotification('Your flower has bloomed. Come back to your story whenever you like.');
++    setNotification(flower.stage === 7 ? 'Your flower is here, with the words you shared.' : 'Saved just as it is. You can return and continue whenever you like.');
+   }
+ 
+   function saveFamily(event: React.FormEvent) {
+@@ -282,9 +360,62 @@ export default function GardenApp() {
+   function closeModal() {
+     stopAudio();
+     if (modal === 'family-note' || modal === 'family-consent') setFamilyGranted(false);
++    if (modal === 'contact' && contactReturn.current) { setModal('pause'); return; }
+     setModal(null);
+   }
+ 
++  function continueStory(memory: GardenMemory) {
++    if (memory.stage === 7) return;
++    stopWork();
++    const state = gardenRef.current;
++    const previous = state.current?.id !== memory.id && state.current?.entries.some(entry => entry.speaker === 'patient') ? finishMemory(state.current) : null;
++    const flowers = previous ? [previous, ...state.flowers.filter(flower => flower.id !== previous.id)] : state.flowers;
++    commit({ ...state, flowers: flowers.filter(flower => flower.id !== memory.id), current: { ...memory, status: 'paused' } });
++    setFeatured(null); setScreen('garden'); paused.current = true; setModal('pause');
++  }
++
++  function openContact(returnToPause = false) {
++    contactReturn.current = returnToPause;
++    setContactName(contact?.name || ''); setContactPhone(contact?.phone || ''); setContactError(''); setModal('contact');
++  }
++
++  function saveContact(event: React.FormEvent) {
++    event.preventDefault();
++    const phone = normalisePhone(contactPhone);
++    if (!phone || !contactName.trim()) { setContactError('Please add a name and a phone number with 7–15 digits. Include the country code when needed.'); return; }
++    const next = { name: contactName.trim(), phone };
++    if (!writeContact(next)) { setContactError('This contact could not be saved on this device. Please try again.'); return; }
++    setContact(next); setModal(contactReturn.current ? 'pause' : 'settings');
++  }
++
++  function saveOwnerName(value: string) {
++    const next = writeGardenName(value);
++    if (!next) return false;
++    setOwnerName(next); setShowNamePrompt(false); return true;
++  }
++
++  function leaveGarden() {
++    stopWork(); transitions.current.forEach(clearTimeout);
++    const state = gardenRef.current;
++    const memory = state.current ? finishMemory(state.current) : null;
++    commit({ ...state, current: null, flowers: memory ? [memory, ...state.flowers.filter(flower => flower.id !== memory.id)] : state.flowers });
++    setFeatured(null); setEntering(false); setArriving(false); setScreen('entrance'); setModal(null); paused.current = false; setSpeechNotice('');
++  }
++
++  function clearDemoGarden() {
++    stopWork(); transitions.current.forEach(clearTimeout);
++    try {
++      const fresh = resetGarden(); gardenRef.current = fresh; setGarden(fresh);
++      setOwnerName(DEFAULT_GARDEN_NAME); setShowNamePrompt(true); setContact(null);
++      setFeatured(null); setViewing(null); setDraft(''); setTranscript(''); transcriptRef.current = '';
++      setHasCorruptData(false); setStorageError(''); setNotification(''); setSpeechNotice('');
++      setTopicSet(0); setSelectedTopic(null); setEntering(false); setArriving(false); setModal(null); setScreen('entrance');
++      setBubble(REASSURANCE); setVoiceVolume(.9); setVoiceRate(.8); paused.current = false;
++      setCloudAllowed(false); setAutoRead(true); setMicAccepted(false);
++      window.history.replaceState(null, '', '/');
++    } catch { setStorageError('This garden could not be reset. Please keep this page open and try again.'); }
++  }
++
+   function showStory(memory: GardenMemory) { stopAudio(); setViewing(memory); setModal('story'); }
+   function download(data: string, filename: string) {
+     const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+@@ -292,58 +423,56 @@ export default function GardenApp() {
+   }
+ 
+   const current = garden.current;
+-  const activeFlower = current || featured;
++  const activeFlower = current;
+   const canFinish = !!current?.entries.some(entry => entry.speaker === 'patient');
+   const hints = ['Listen, then leave a little space. Let them finish in their own time.', 'Try one gentle invitation: “What sounds come to mind?” Then give them time.', 'A familiar photo or object can sit nearby. Let them choose whether to talk about it.'];
++  const lastCompanion = [...(current?.entries || [])].reverse().find(entry => entry.speaker === 'companion');
+   const lastPatient = [...(current?.entries || [])].reverse().find(entry => entry.speaker === 'patient');
+ 
+-  return <div className={'memory-garden-app' + (reduceMotion ? ' quiet-motion' : '')}>
+-    <a className="skip-link" href="#garden-main">Skip to garden</a>
+-    <header className="garden-header">
+-      <a className="garden-brand" href="/" aria-label="Memory Garden"><span className="brand-sprout"><Sprout size={29} strokeWidth={1.3} /></span><span>Memory Garden<small>A PLACE TO FEEL CLOSE</small></span></a>
+-      {screen === 'garden' && <div className="garden-header-actions"><button className={'soft-button companion-toggle' + (familyOpen ? ' selected' : '')} aria-label="Together" aria-expanded={familyOpen} onClick={() => { stopAudio(); setFamilyOpen(value => !value); }} disabled={recording || thinking}><Users size={19} /><span>Together</span></button><button className="rest-button" onClick={pauseConversation}><Pause size={18} /><span>Take a rest</span></button></div>}
+-    </header>
++  return <div className={'memory-garden-app cognitive-garden' + (reduceMotion ? ' quiet-motion' : '')}>
++    {screen !== 'entrance' && <a className="skip-link" href="#garden-main">Skip to garden</a>}
++    {screen !== 'entrance' && <header className="garden-header">
++      <a className="garden-brand" href="/" aria-label="Memory Garden"><span className="brand-sprout"><Sprout size={29} strokeWidth={1.3} /></span><span className="garden-owner-stamp">{gardenLabel(ownerName)}<small>Memory Garden</small></span></a>
++      {screen === 'garden' && <div className="garden-header-actions"><button className={'soft-button companion-toggle' + (familyOpen ? ' selected' : '')} aria-label="Family companion tips" aria-expanded={familyOpen} onClick={() => { stopAudio(); setFamilyOpen(value => !value); }} disabled={recording || thinking}><Users size={19} /><span>For family</span></button><button className="rest-button" onClick={pauseConversation}><Pause size={18} /><span>Take a rest</span></button></div>}
++    </header>}
+ 
++    <button className="garden-settings-trigger" aria-label="Settings" onClick={() => { stopAudio(); setModal('settings'); }}><Settings2 size={25} strokeWidth={1.3} aria-hidden="true" /></button>
+     <main id="garden-main">
+-      <section className={'garden-scene screen-' + screen + (featured && !current ? ' scene-has-bloom' : '')} aria-label="Memory garden">
+-        <Image className="garden-landscape" src="/garden/empty-garden-background.png" alt="" aria-hidden="true" fill priority sizes="100vw" quality={85} />
++      <section className={'garden-scene screen-' + screen + (featured && !current ? ' scene-has-bloom' : '') + (entering ? ' scene-entering' : '')} data-growth={activeFlower?.stage ? undefined : 'empty'} aria-label="Memory garden">
++        {screen === 'entrance' ? <div className="entrance-landscape-frame" aria-hidden="true"><div className="entrance-landscape-motion">
++          <Image className="garden-landscape" src="/garden/empty-garden-background.png" alt="" fill priority sizes="100vw" quality={85} />
++          <span className="garden-gate-glow" />
++        </div></div> : <GardenCanvas flowers={garden.flowers} onOpen={showStory} />}
+         <div className="scene-wash" />
+-        {screen === 'entrance' && <div className="entrance-content">
+-          <p className="garden-eyebrow">A QUIET PLACE TO FEEL CLOSE</p>
+-          <h1>Every little moment<br /><em>has a place to bloom.</em></h1>
+-          <p className="entrance-description">A garden for your stories, and the people you hold dear.<br />Come as you are. There is no hurry.</p>
+-          <button className="garden-primary enter-garden" disabled={!loaded} onClick={() => setScreen('topics')}>Enter the garden<ArrowRight size={20} /></button>
+-          <p className="entrance-note">Your garden begins with a little conversation.</p>
+-        </div>}
++        {screen === 'entrance' && <div className="garden-path-hover" aria-hidden="true" />}
++        {screen !== 'entrance' && <div className="garden-air" aria-hidden="true"><span /><span /><span /></div>}
++        {screen === 'entrance' && <MagicGardenEntry disabled={!loaded || entering} entering={entering} label={gardenLabel(ownerName)} onEnter={enterGarden} />}
++        {screen !== 'entrance' && showNamePrompt && <div className="garden-name-prompt"><button aria-label="Name your garden" onClick={() => { if (autoRead) readAloud('Whose garden is this?'); setModal('name'); }}>Whose garden is this?</button><button aria-label="Name this garden later" onClick={() => setShowNamePrompt(false)}>Later</button></div>}
+         {screen === 'topics' && <div className="topic-content">
+-          <button className="topic-back garden-text-button" onClick={() => setScreen('entrance')}><ArrowLeft size={17} />Back</button>
++          <button className="topic-back garden-text-button" disabled={!!selectedTopic} onClick={() => { stopAudio(); setPreviewTopic(null); setScreen('entrance'); }}><ArrowLeft size={17} />Back</button>
+           <p className="garden-eyebrow">A LITTLE THOUGHT TO BEGIN</p>
+-          <h1>What would you like to talk about?</h1>
+-          <p className="topic-description">Choose whatever feels close to you today.</p>
+-          <div className="topic-bubbles">{topics.map((topic, index) => <button key={topic.id} className={'topic-bubble topic-' + index} onClick={() => chooseTopic(topic.question)}>
+-            <span className="topic-number">0{index + 1}</span><span className="topic-title">{topic.title}</span><span className="topic-label">{topic.label}</span><ArrowRight size={20} />
+-          </button>)}</div>
++          <h1>A little place to begin.</h1>
++          <p className="topic-description">Choose what feels close.</p>
++          <div key={topicSet} className={'topic-bubbles' + (selectedTopic ? ' is-choosing' : '')}>{topics.slice(topicSet * 3, topicSet * 3 + 3).map((topic, index) => <GardenTopicCue key={topic.id} id={topic.id} index={index} selected={selectedTopic === topic.id} disabled={!!selectedTopic} previewing={previewTopic === topic.id}
++            onPreview={() => { setPreviewTopic(topic.id); if (autoRead) readAloud(topic.question); }}
++            onLeave={() => setPreviewTopic(value => value === topic.id ? null : value)}
++            onChoose={() => chooseTopic(topic.question, topic.id)} />)}</div>
++          {(speaking || speechNotice) && <div className="topic-voice-controls">{speaking && <button className="quiet-stop-voice" aria-label="Stop voice" onClick={stopAudio}><Square size={24} aria-hidden="true" /><span>Stop</span></button>}{speechNotice && <p role="status">{speechNotice}</p>}</div>}
+           {current?.entries.some(entry => entry.speaker === 'patient') && <button className="resume-story garden-secondary" onClick={() => { setScreen('garden'); setModal('pause'); }}><Play size={18} />Your story is waiting · Continue</button>}
+-          <p className="topic-note">There are no right answers. A few words are enough.</p>
++          <button className="garden-text-button topic-refresh" disabled={!!selectedTopic} onClick={() => { stopAudio(); setPreviewTopic(null); setSpeechNotice(''); setTopicSet(value => (value + 1) % (topics.length / 3)); }}>Explore three other ideas<ArrowRight size={17} /></button>
++          <p className="topic-note">Choose only if something feels close to you.</p>
+         </div>}
+         {screen === 'garden' && <>
+         <div className="garden-introduction"><p><span /> A GARDEN OF LITTLE MOMENTS</p><h1>Little by little, a memory blooms.</h1></div>
+-        <div className="companion-bubble" aria-busy={thinking}>
+-          <div className="bubble-topline"><span><span className="companion-leaf"><Leaf size={15} /></span>{thinking ? 'Taking our time' : 'Your garden companion'}</span>{speechAvailable && <button className="bubble-listen" aria-label={speaking ? 'Stop reading' : 'Listen to this question'} onClick={() => speaking ? stopAudio() : readAloud(bubble)} disabled={recording || thinking}>{speaking ? <Square size={15} /> : <Volume2 size={17} />}<span>{speaking ? 'Stop' : 'Listen'}</span></button>}</div>
+-          <p className="bubble-message" aria-live="polite">{thinking ? <span className="thinking-copy"><LoaderCircle size={22} />I am listening. Take your time.</span> : bubble}</p>
+-          <span className="bubble-footnote">{current?.status === 'paused' ? 'Nothing to finish. Your garden can wait.' : 'A little thought is enough. There is no hurry.'}</span>
+-        </div>
++        <GardenCompanionBubble message={bubble} messageKey={lastCompanion?.id || current?.id || featured?.id || 'opening'} thinking={thinking} blocked={thinking || recording || !!modal} speaking={speaking} reduceMotion={reduceMotion} onSpeak={text => { setUserInteraction(value => value + 1); if (autoRead) readAloud(text); }} onStop={stopAudio} />
++        {speechNotice && <p className="quiet-speech-notice" role="status">{speechNotice}</p>}
+ 
+         {activeFlower && activeFlower.stage > 0 && <div className={'current-flower-place' + (justBloomed ? ' freshly-bloomed' : '')} key={activeFlower?.id || 'empty'}>
+-          <GardenFlower kind={activeFlower?.kind || 'daisy'} stage={activeFlower?.stage || 0} familyBud={activeFlower?.familyBud} />
++          <GardenFlower kind={activeFlower?.kind || 'daisy'} stage={activeFlower?.stage || 0} familyBud={activeFlower?.familyBud} sensoryDetails={activeFlower?.sensoryDetails} />
+           <p className="current-flower-label">{current ? current.stage > 0 ? 'Your words are gently growing here' : 'A little moment begins with your words' : featured ? 'A little flower for your story' : 'A quiet place for your story'}</p>
+           {featured && !current && <button className="new-flower-story" onClick={() => showStory(featured)}>Visit this flower’s story<ChevronRight size={16} /></button>}
+         </div>}
+ 
+-        <div className="saved-flower-plots" aria-label="Saved flowers">
+-          {garden.flowers.filter(flower => flower.id !== featured?.id).slice(0, 3).map((flower, index) => <button key={flower.id} className={`saved-flower saved-flower-${index}`} onClick={() => showStory(flower)} aria-label={`${flower.example ? 'Example: ' : ''}${flower.title}, view story`}><GardenFlower kind={flower.kind} stage={5} /><span className="flower-nameplate">{flower.title}<ChevronRight size={13} /></span>{flower.example && <small>Example story</small>}</button>)}
+-        </div>
+-        <div className="scene-caption"><span />Every little story has a place here<span /></div>
+ 
+         </>}
+         {screen === 'garden' && familyOpen && <aside className="family-panel" aria-labelledby="family-panel-title"><div className="family-panel-top"><span><Users size={18} />Being here together</span><button className="garden-icon-button" aria-label="Close companion tips" onClick={() => setFamilyOpen(false)}><X size={20} /></button></div><h2 id="family-panel-title">Be here. Let the words follow.</h2><div className="family-hint"><Leaf size={20} /><p>{hints[hint]}</p></div><button className="hint-next" onClick={() => setHint(value => (value + 1) % hints.length)}>Another gentle idea<ArrowRight size={15} /></button><p className="family-guidance">One invitation at a time. Let their own words lead.</p><button className="garden-secondary" disabled={!canFinish || paused.current || thinking} onClick={() => { setFamilyGranted(false); setModal('family-consent'); }}>Share a little detail</button>{!canFinish && <small>Let them share first, then ask to add a detail.</small>}</aside>}
+@@ -358,10 +487,10 @@ export default function GardenApp() {
+         {storageError && <p className="garden-storage-error" role="alert">{storageError}</p>}
+       </section>}
+ 
+-      <section className="garden-keepsakes"><div><span className="little-leaf"><Leaf size={16} /></span><p>Some little moments<em>stay with us.</em></p></div><button className="garden-text-button" onClick={() => { stopAudio(); setModal('collection'); }}><BookOpen size={18} />Visit your flowers<ArrowRight size={17} /></button></section>
++      {(entering || arriving) && <div className={'entry-transition-light' + (arriving ? ' is-arriving' : '')} aria-hidden="true" />}
+     </main>
+ 
+-    <footer className="garden-footer"><span><ShieldCheck size={14} />Stories stay on this device</span><button aria-label="Settings" onClick={() => { stopAudio(); setModal('settings'); }}><Settings2 size={15} />{cloudAllowed ? 'Cloud AI companion' : 'Local demo · guided replies'}<span className="footer-settings">Settings</span></button><p>No need to remember everything. Being here together is enough.</p></footer>
++    {screen !== 'entrance' && <GardenActivities onOpen={() => { transitions.current.forEach(clearTimeout); setSelectedTopic(null); stopWork(); const state = gardenRef.current; if (state.current) { paused.current = true; commit({ ...state, current: { ...state.current, status: 'paused' } }); setBubble(COMFORT); } }} />}
+ 
+     {modal === 'welcome' && <GardenDialog onPause={pauseConversation} title="There is time for your story." onClose={closeModal}><div className="dialog-symbol"><Sprout size={38} strokeWidth={1.2} /></div><p className="dialog-lead">We can share a little moment from life. As much or as little as you like.</p><ul className="welcome-notes"><li><Pause size={18} />Rest whenever you like. There is nothing to complete.</li><li><ShieldCheck size={18} />Your stories stay on this device.</li><li><Leaf size={18} />{cloudAllowed ? 'You have chosen to share this conversation’s text with OpenAI for replies.' : 'Local demo replies are on. Nothing is sent to AI.'}</li></ul><div className="dialog-actions"><button className="garden-primary" onClick={acceptWelcome}>I would like to share<ArrowRight size={19} /></button><button className="garden-text-button" onClick={closeModal}>Just look around</button></div></GardenDialog>}
+ 
+@@ -371,18 +500,20 @@ export default function GardenApp() {
+ 
+     {modal === 'review' && <GardenDialog onPause={pauseConversation} title="Here is what I heard…" onClose={closeModal}><p className="dialog-note">Read it, change it, or try again. There is no hurry.</p><label className="sr-only" htmlFor="voice-review">Review your words</label><textarea id="voice-review" rows={4} maxLength={MAX_EXPRESSION} value={transcript} onChange={event => setTranscript(event.target.value)} /><div className="dialog-actions"><button className="garden-primary" disabled={!transcript.trim()} onClick={() => submitPatient(transcript)}>Share these words<Check size={19} /></button><button className="garden-text-button" onClick={requestMic}>Try speaking again</button></div></GardenDialog>}
+ 
+-    {modal === 'pause' && <GardenDialog onPause={pauseConversation} title="Let us rest for a while." onClose={closeModal}><div className="dialog-symbol"><Heart size={35} strokeWidth={1.2} /></div><p className="dialog-lead">That is okay. We can visit another day.</p><p className="dialog-note">Your words and flower stay here. The microphone and audio are off.</p><div className="dialog-actions"><button className="garden-primary" onClick={resume}>Return to the garden<Leaf size={19} /></button><button className="garden-text-button" onClick={closeModal}>Rest for today</button></div></GardenDialog>}
++    {modal === 'pause' && <GardenDialog onPause={pauseConversation} title="Let us rest for a while." onClose={closeModal}><div className="dialog-symbol"><Heart size={35} strokeWidth={1.2} /></div><p className="dialog-lead">{REASSURANCE}</p><button className="garden-secondary" onClick={() => readAloud(REASSURANCE)}>Hear these words</button><p className="dialog-note">Your words and flower stay here. The microphone and audio are off.</p><div className="garden-contact-options">{contact ? <><a className="garden-secondary" href={'tel:' + contact.phone}>Call {contact.name}</a><p className="dialog-note">Opens your device’s calling app for {contact.phone}. Review the number before calling.</p></> : <button className="garden-secondary" onClick={() => openContact(true)}>Add someone to call</button>}</div><div className="dialog-actions"><button className="garden-primary" onClick={resume}>Return to the garden<Leaf size={19} /></button><button className="garden-text-button" onClick={closeModal}>Rest for today</button></div></GardenDialog>}
+ 
+-    {modal === 'finish' && current && <GardenDialog onPause={pauseConversation} title="Keep this little moment." onClose={closeModal}><p className="dialog-note">What you have shared is enough.</p><label className="garden-field-label" htmlFor="flower-title">A name for your flower</label><input id="flower-title" maxLength={100} value={title} onChange={event => setTitle(event.target.value)} /><div className="story-excerpts">{current.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? 'You shared' : `${entry.name} shared`}</span><p>{entry.text}</p></blockquote>)}</div><div className="dialog-actions"><button className="garden-primary" onClick={finish}><Flower2 size={21} />Let this flower bloom</button><button className="garden-text-button" onClick={closeModal}>Stay a little longer</button></div></GardenDialog>}
++    {modal === 'finish' && current && <GardenDialog onPause={pauseConversation} title="Keep this little moment." onClose={closeModal}><p className="dialog-note">What you have shared is enough.</p><label className="garden-field-label" htmlFor="flower-title">A name for your flower</label><input id="flower-title" maxLength={100} value={title} onChange={event => setTitle(event.target.value)} /><div className="story-excerpts">{current.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? 'You shared' : `${entry.name} shared`}</span><p>{entry.text}</p></blockquote>)}</div><div className="dialog-actions"><button className="garden-primary" onClick={finish}><Flower2 size={21} />Save for another day</button><button className="garden-text-button" onClick={closeModal}>Stay a little longer</button></div></GardenDialog>}
+ 
+-    {modal === 'collection' && <GardenDialog onPause={pauseConversation} title="Little moments, always here." onClose={closeModal} wide><p className="dialog-note">Choose a flower to read or listen to its story. No questions to answer.</p><div className="flower-collection">{garden.flowers.map(flower => <button className="collection-flower-card" key={flower.id} onClick={() => showStory(flower)}><div><GardenFlower kind={flower.kind} /></div><span>{flower.title}</span><small>{flower.example ? 'Example story' : flowerNames[flower.kind]}<ChevronRight size={14} /></small></button>)}</div>{garden.flowers.length === 0 && <p className="dialog-lead">There is room for your first little moment. We can plant it whenever you feel ready.</p>}</GardenDialog>}
++    {modal === 'collection' && <GardenDialog onPause={pauseConversation} title="Little moments, always here." onClose={closeModal} wide><p className="dialog-note">Choose a flower to read or listen to its story. No questions to answer.</p><div className="flower-collection">{garden.flowers.map(flower => <button className="collection-flower-card" key={flower.id} onClick={() => showStory(flower)}><div><GardenFlower kind={flower.kind} stage={flower.stage} familyBud={flower.familyBud} sensoryDetails={flower.sensoryDetails} /></div><span>{flower.title}</span><small>{flower.example ? 'Example story' : flowerNames[flower.kind]}<ChevronRight size={14} /></small></button>)}</div>{garden.flowers.length === 0 && <p className="dialog-lead">There is room for your first little moment. We can plant it whenever you feel ready.</p>}</GardenDialog>}
+ 
+-    {modal === 'story' && viewing && <GardenDialog onPause={pauseConversation} title={viewing.title} onClose={closeModal} wide><div className="story-layout"><div className="story-flower"><GardenFlower kind={viewing.kind} /><span>{flowerNames[viewing.kind]}</span></div><div><p className="story-record-label">{viewing.example ? 'Fictional example · for demonstration' : 'The words we shared'}</p><div className="story-excerpts">{viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? 'You shared' : `${entry.name || 'Family'} shared · with permission`}</span><p>{entry.text}</p></blockquote>)}</div>{speechAvailable && <button className="garden-secondary" onClick={() => speaking ? stopAudio() : readAloud(viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => `${entry.speaker === 'family' ? `${entry.name} shared: ` : 'You shared: '}${entry.text}`).join('。'))}>{speaking ? <Square size={18} /> : <Volume2 size={19} />}{speaking ? 'Stop reading' : 'Listen to this story'}</button>}<p className="dialog-note">The saved date is the date of sharing, not the date of the event. These are the words as shared.</p>{!viewing.example && <button className="delete-story-button" onClick={() => { if (window.confirm('Delete this story and its flower from this device?')) { commit({ ...gardenRef.current, flowers: gardenRef.current.flowers.filter(flower => flower.id !== viewing.id) }); if (featured?.id === viewing.id) setFeatured(null); closeModal(); } }}>Delete this story</button>}</div></div></GardenDialog>}
++    {modal === 'story' && viewing && <GardenDialog onPause={pauseConversation} title={viewing.title} onClose={closeModal} wide><div className="story-layout"><div className="story-flower"><GardenFlower kind={viewing.kind} stage={viewing.stage} familyBud={viewing.familyBud} sensoryDetails={viewing.sensoryDetails} /><span>{flowerNames[viewing.kind]}</span></div><div><p className="story-record-label">{viewing.example ? 'Fictional example · for demonstration' : 'The words we shared'}</p><div className="story-excerpts">{viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? 'You shared' : `${entry.name || 'Family'} shared · with permission`}</span><p>{entry.text}</p></blockquote>)}</div>{speechAvailable && <button className="garden-secondary" onClick={() => speaking ? stopAudio() : readAloud(viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => `${entry.speaker === 'family' ? `${entry.name} shared: ` : 'You shared: '}${entry.text}`).join('. '))}>{speaking ? <Square size={18} /> : <Volume2 size={19} />}{speaking ? 'Stop reading' : 'Listen to this story'}</button>}{viewing.stage < 7 && !viewing.example && <button className="garden-primary" onClick={() => continueStory(viewing)}><Play size={19} />Continue this story</button>}<p className="dialog-note">The saved date is the date of sharing, not the date of the event. These are the words as shared.</p>{!viewing.example && <button className="delete-story-button" onClick={() => { if (window.confirm('Delete this story and its flower from this device?')) { commit({ ...gardenRef.current, flowers: gardenRef.current.flowers.filter(flower => flower.id !== viewing.id) }); if (featured?.id === viewing.id) setFeatured(null); closeModal(); } }}>Delete this story</button>}</div></div></GardenDialog>}
+ 
+     {modal === 'family-consent' && <GardenDialog onPause={pauseConversation} title="May your companion add a little detail?" onClose={closeModal}><p className="dialog-lead">Their words will be named separately. Your story stays in your own words.</p><div className="dialog-actions"><button className="garden-primary" onClick={() => { setFamilyGranted(true); setModal('family-note'); }}>Yes, let us listen<Check size={19} /></button><button className="garden-secondary" onClick={() => { setFamilyGranted(false); closeModal(); setNotification('Of course. We are here to listen to you.'); }}>Not this time</button></div></GardenDialog>}
+ 
+     {modal === 'family-note' && familyGranted && <GardenDialog onPause={pauseConversation} title="Share one gentle detail." onClose={closeModal}><p className="dialog-note">Start with “My impression is…” and share your own recollection. Leave room for their words.</p><form onSubmit={saveFamily}><label className="garden-field-label" htmlFor="family-name">Your name</label><input id="family-name" required maxLength={40} value={familyName} onChange={event => setFamilyName(event.target.value)} placeholder="For example: Alex" /><label className="garden-field-label" htmlFor="family-expression">A little detail from your perspective</label><textarea id="family-expression" required rows={3} maxLength={MAX_EXPRESSION} value={familyText} onChange={event => setFamilyText(event.target.value)} placeholder="My impression is…" /><div className="dialog-actions"><button className="garden-primary" type="submit">Save this detail<Leaf size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>Skip this detail</button></div></form></GardenDialog>}
+ 
+-    {modal === 'settings' && <GardenDialog onPause={pauseConversation} title="Make yourself comfortable." onClose={closeModal}><div className="garden-settings"><label><span><Leaf size={19} />Reduce motion<small>Show growth without animation.</small></span><input type="checkbox" checked={reduceMotion} onChange={event => setReduceMotion(event.target.checked)} /></label><label><span>{autoRead ? <Volume2 size={19} /> : <VolumeX size={19} />}Read replies aloud<small>Uses a device voice, without imitating family.</small></span><input type="checkbox" checked={autoRead} disabled={!speechAvailable} onChange={event => { setAutoRead(event.target.checked); if (!event.target.checked) stopAudio(); }} /></label><label><span><ShieldCheck size={19} />Use cloud AI<small>{aiAvailable ? 'When on, recent text from this conversation is sent to OpenAI for each reply. Other flowers and recordings are excluded.' : 'Not connected. Local guided replies let you explore the full garden experience.'}</small></span><input type="checkbox" checked={cloudAllowed} disabled={!aiAvailable || thinking || recording} onChange={event => setCloudAllowed(event.target.checked)} /></label></div><p className="dialog-note">You can turn cloud AI off at any time. AI can make mistakes. This garden offers companionship, without diagnosis, treatment, or medical advice.</p><div className="data-controls"><h3>Your stories, in your care.</h3><p>Stories are saved in this browser. Clearing browser data removes your garden. You can export a copy first.</p><button className="garden-secondary" onClick={() => download(JSON.stringify(gardenRef.current, null, 2), 'memory-garden.json')}>Export your garden<ArrowRight size={18} /></button>{hasCorruptData && <button className="garden-text-button" onClick={() => { try { download(localStorage.getItem(GARDEN_KEY) || '', 'memory-garden-original.json'); } catch { setNotification('The original data could not be read.'); } }}>Export original data</button>}</div></GardenDialog>}
++    {modal === 'settings' && <GardenDialog className="garden-settings-drawer" onPause={pauseConversation} title="Make yourself comfortable." onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /><p className="dialog-note">Your stories stay on this device for your privacy.</p><div className="garden-voice-settings"><h3>Voice volume</h3><div><button aria-label="Lower volume" onClick={() => setVoiceVolume(value => Math.max(0, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceVolume * 100)}%</output><button aria-label="Raise volume" onClick={() => setVoiceVolume(value => Math.min(1, +(value + .1).toFixed(1)))}>+</button></div><h3>Reading speed</h3><div><button aria-label="Slower voice" onClick={() => setVoiceRate(value => Math.max(.5, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceRate * 100)}%</output><button aria-label="Faster voice" onClick={() => setVoiceRate(value => Math.min(1.2, +(value + .1).toFixed(1)))}>+</button></div></div><div className="garden-settings"><label><span><Leaf size={19} />Reduce motion<small>Show growth without animation.</small></span><input type="checkbox" checked={reduceMotion} onChange={event => setReduceMotion(event.target.checked)} /></label><label><span>{autoRead ? <Volume2 size={19} /> : <VolumeX size={19} />}Read on touch<small>Speaks when you explore a topic or open a reply. You can turn this off.</small></span><input type="checkbox" checked={autoRead} disabled={!speechAvailable} onChange={event => { setAutoRead(event.target.checked); if (!event.target.checked) stopAudio(); }} /></label><details className="garden-developer-options"><summary>Developer options</summary><p>Local demo / guided replies</p><label><span><ShieldCheck size={19} />Use cloud AI<small>{aiAvailable ? 'When on, recent text from this conversation is sent to OpenAI for each reply. Other flowers and recordings are excluded.' : 'Not connected. Local guided replies let you explore the full garden experience.'}</small></span><input type="checkbox" checked={cloudAllowed} disabled={!aiAvailable || thinking || recording} onChange={event => setCloudAllowed(event.target.checked)} /></label><p>Reset removes this app’s stories, contact and name on this device. Other browser data is untouched.</p><button className="garden-secondary" onClick={clearDemoGarden}>Reset demo garden</button></details></div><p className="dialog-note">You can turn cloud AI off at any time. AI can make mistakes. This garden offers companionship, without diagnosis, treatment, or medical advice.</p><div className="data-controls"><h3>Someone close to you.</h3><p>{contact ? contact.name + ' · ' + contact.phone : 'Add someone you would like to call when you want company.'}</p><button className="garden-secondary" onClick={() => openContact()}>{contact ? 'Edit contact' : 'Add a contact'}</button>{contact && <button className="garden-text-button" onClick={() => { if (writeContact(null)) setContact(null); else setNotification('This contact could not be removed. Please try again.'); }}>Remove contact</button>}<p>Contact details stay on this device and are never included in AI conversations. Calls only begin when you choose to call.</p></div><div className="data-controls"><h3>Your stories, in your care.</h3><p>Stories are saved in this browser. Clearing browser data removes your garden. You can export a copy first.</p><button className="garden-secondary" onClick={() => download(JSON.stringify(gardenRef.current, null, 2), 'memory-garden.json')}>Export your garden<ArrowRight size={18} /></button>{hasCorruptData && <button className="garden-text-button" onClick={() => { try { download(localStorage.getItem(GARDEN_KEY) || '', 'memory-garden-original.json'); } catch { setNotification('The original data could not be read.'); } }}>Export original data</button>}</div>{storageError && <p role="alert" className="garden-storage-error">{storageError}</p>}<button className="garden-secondary garden-exit" onClick={leaveGarden}>Leave the garden</button></GardenDialog>}
++    {modal === 'name' && <GardenDialog onPause={pauseConversation} title="Whose garden is this?" onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /></GardenDialog>}
++    {modal === 'contact' && <GardenDialog onPause={pauseConversation} title="Someone you can call." onClose={closeModal}><p className="dialog-note">Choose a family member, friend, or someone you trust. We will never call them automatically.</p><form onSubmit={saveContact}><label className="garden-field-label" htmlFor="contact-name">Contact name</label><input id="contact-name" autoComplete="off" required maxLength={40} value={contactName} onChange={event => setContactName(event.target.value)} /><label className="garden-field-label" htmlFor="contact-phone">Phone number</label><input id="contact-phone" type="tel" inputMode="tel" autoComplete="off" required maxLength={32} aria-describedby="contact-note" value={contactPhone} onChange={event => setContactPhone(event.target.value)} /><p id="contact-note" className="dialog-note">Include the country code when needed. This opens the calling app on your device; a calling app or phone service is required.</p>{contactError && <p className="garden-storage-error" role="alert">{contactError}</p>}<div className="dialog-actions"><button className="garden-primary" type="submit">Save contact<Check size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>Not now</button></div></form></GardenDialog>}
+   </div>;
+ }
+diff --git a/components/GardenCanvas.tsx b/components/GardenCanvas.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/GardenCanvas.tsx
+@@ -0,0 +1,43 @@
++'use client';
++
++import { useEffect, useRef, useState } from 'react';
++import Image from 'next/image';
++import GardenFlower from './GardenFlower';
++import { GardenMemory, GROWTH_STAGES } from '../lib/garden';
++
++export default function GardenCanvas({ flowers, onOpen }: { flowers: GardenMemory[]; onOpen: (memory: GardenMemory) => void }) {
++  const view = useRef<HTMLDivElement>(null);
++  const [width, setWidth] = useState(0);
++  const [offset, setOffset] = useState(0);
++  const offsetRef = useRef(0);
++  const drag = useRef<{ x: number; y: number; offset: number; active: boolean } | null>(null);
++  const [dragging, setDragging] = useState(false);
++  const ordered = [...flowers].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id));
++  const worldWidth = Math.max(width, 1800 + Math.floor(ordered.length / 6) * 720);
++  const maxOffset = Math.max(0, worldWidth - width);
++  function pan(next: number) { const value = Math.max(0, Math.min(maxOffset, next)); offsetRef.current = value; setOffset(value); }
++  useEffect(() => {
++    const node = view.current; if (!node) return;
++    const observer = new ResizeObserver(([entry]) => { const next = entry.contentRect.width; setWidth(next); const centered = Math.max(0, 900 - next / 2); offsetRef.current = centered; setOffset(centered); });
++    observer.observe(node); return () => observer.disconnect();
++  }, []);
++  return <div ref={view} className={'garden-canvas' + (dragging ? ' is-panning' : '')} tabIndex={0} role="group" aria-label="Your garden. Drag or swipe left and right to explore your flowers. You can also use the arrow keys."
++    onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); pan(offsetRef.current + (event.key === 'ArrowRight' ? 180 : -180)); } if (event.key === 'Home') { event.preventDefault(); pan(900 - width / 2); } }}
++    onPointerDown={event => { if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return; drag.current = { x: event.clientX, y: event.clientY, offset: offsetRef.current, active: false }; }}
++    onPointerMove={event => { const start = drag.current; if (!start) return; const dx = event.clientX - start.x, dy = event.clientY - start.y; if (!start.active && Math.abs(dx) > 7 && Math.abs(dx) > Math.abs(dy)) { start.active = true; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); } if (start.active) { event.preventDefault(); pan(start.offset - dx); } }}
++    onPointerUp={() => { drag.current = null; setDragging(false); }} onPointerCancel={() => { drag.current = null; setDragging(false); }} onLostPointerCapture={() => { drag.current = null; setDragging(false); }}>
++    <div className="garden-world" style={{ width: worldWidth, transform: `translateX(${-offset}px)` }}>
++      <Image className="garden-world-landscape" src="/garden/empty-garden-background.png" alt="" fill priority sizes="2200px" quality={85} draggable={false} />
++      <div className="garden-world-wash" />
++      {ordered.map((memory, index) => {
++        const spread = Math.min(340, width * .32);
++        const positions = [-spread, spread, -470, 470, -80, 570];
++        const x = 900 + Math.floor(index / 6) * 720 + positions[index % 6];
++        return <button key={memory.id} className="garden-memory-plant" style={{ left: x, bottom: `${14 + (index % 3) * 7}%` }} aria-label={`${memory.title}. ${GROWTH_STAGES[memory.stage]}. Open this story.`} onClick={() => onOpen(memory)} onFocus={event => { if (event.currentTarget.matches(':focus-visible')) pan(x - width / 2); }}>
++          <GardenFlower kind={memory.kind} stage={memory.stage} familyBud={memory.familyBud} sensoryDetails={memory.sensoryDetails} />
++          <span className="garden-memory-title">{memory.title}</span>
++        </button>;
++      })}
++    </div>
++  </div>;
++}
+diff --git a/components/GardenCompanionBubble.tsx b/components/GardenCompanionBubble.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/GardenCompanionBubble.tsx
+@@ -0,0 +1,46 @@
++'use client';
++
++import { useEffect, useId, useRef, useState } from 'react';
++import { Leaf, Square } from 'lucide-react';
++
++export default function GardenCompanionBubble({ message, messageKey, thinking, blocked, speaking, reduceMotion, onSpeak, onStop }: {
++  message: string; messageKey: string; thinking: boolean; blocked: boolean; speaking: boolean; reduceMotion: boolean;
++  onSpeak: (message: string) => void; onStop: () => void;
++}) {
++  const [revealed, setRevealed] = useState(false);
++  const [typed, setTyped] = useState('');
++  const revealedRef = useRef(false);
++  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
++  const messageId = useId();
++
++  useEffect(() => {
++    if (timer.current) clearInterval(timer.current);
++    timer.current = null; revealedRef.current = false; setRevealed(false); setTyped('');
++    return () => { if (timer.current) clearInterval(timer.current); };
++  }, [message, messageKey, blocked]);
++
++  function reveal(activate = false) {
++    if (blocked || thinking) return;
++    if (revealedRef.current) { if (activate) onSpeak(message); return; }
++    revealedRef.current = true; setRevealed(true);
++    // Call synchronously from the gesture: do not defer speech to the typing timer.
++    onSpeak(message);
++    if (reduceMotion) { setTyped(message); return; }
++    const letters = Array.from(message); let index = 0;
++    timer.current = setInterval(() => {
++      index++; setTyped(letters.slice(0, index).join(''));
++      if (index >= letters.length && timer.current) { clearInterval(timer.current); timer.current = null; }
++    }, 38);
++  }
++
++  return <div className={'companion-bubble quiet-companion' + (revealed ? ' is-revealed' : '')} aria-busy={thinking}>
++    {(revealed || speaking) && <div className="bubble-topline"><span><Leaf size={18} aria-hidden="true" />Your companion</span>{speaking && <button className="bubble-listen" aria-label="Stop voice" onClick={onStop}><Square size={22} aria-hidden="true" /><span>Stop</span></button>}</div>}
++    <button className="bubble-reveal" aria-label={revealed ? 'Hear the companion message again' : 'Listen to your garden companion'} aria-expanded={revealed} aria-controls={messageId} disabled={blocked || thinking}
++      onPointerMove={event => { if (event.pointerType === 'mouse') reveal(); }} onTouchStart={() => reveal()}
++      onFocus={event => { if (event.currentTarget.matches(':focus-visible')) reveal(); }} onClick={() => reveal(true)}>
++      {revealed ? <span className="bubble-message" aria-hidden="true">{typed || '\u00a0'}</span> : <span className="quiet-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>}
++    </button>
++    {/* One complete accessible copy; never announce the typewriter character by character. */}
++    <p id={messageId} className="sr-only">{revealed ? message : ''}</p>
++  </div>;
++}
+diff --git a/components/GardenDialog.tsx b/components/GardenDialog.tsx
+index 9a56840..aa5c9b9 100644
+--- a/components/GardenDialog.tsx
++++ b/components/GardenDialog.tsx
+@@ -2,10 +2,10 @@
+ import { useEffect, useRef } from 'react';
+ import { X } from 'lucide-react';
+ 
+-export default function GardenDialog({ title, onClose, onPause, children, wide = false }: { title: string; onClose: () => void; onPause?: () => void; children: React.ReactNode; wide?: boolean }) {
++export default function GardenDialog({ title, onClose, onPause, children, wide = false, className = '' }: { title: string; onClose: () => void; onPause?: () => void; children: React.ReactNode; wide?: boolean; className?: string }) {
+   const dialog = useRef<HTMLDialogElement>(null);
+   useEffect(() => { const node = dialog.current; node?.showModal(); return () => node?.close(); }, []);
+-  return <dialog ref={dialog} className={'garden-dialog' + (wide ? ' dialog-wide' : '')} aria-labelledby="garden-dialog-title" onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
++  return <dialog ref={dialog} className={'garden-dialog' + (wide ? ' dialog-wide' : '') + (className ? ' ' + className : '')} aria-labelledby="garden-dialog-title" onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+     <article className="dialog-paper"><header className="dialog-heading"><h2 id="garden-dialog-title">{title}</h2>{onPause && <button className="dialog-rest" onClick={onPause}>Take a rest</button>}<button className="garden-icon-button" onClick={onClose} aria-label="Close"><X size={23} /></button></header>{children}</article>
+   </dialog>;
+ }
+diff --git a/components/GardenFlower.tsx b/components/GardenFlower.tsx
+index 9e590e3..df41ead 100644
+--- a/components/GardenFlower.tsx
++++ b/components/GardenFlower.tsx
+@@ -1,20 +1,22 @@
+-import { FlowerKind } from '../lib/garden';
++import { FlowerKind, GROWTH_STAGES } from '../lib/garden';
+ import Image from 'next/image';
+ 
+-export default function GardenFlower({ kind, stage = 5, familyBud = false, decorative = true }: { kind: FlowerKind; stage?: number; familyBud?: boolean; decorative?: boolean }) {
+-  return <div className={`garden-flower flower-${kind} growth-${stage}`} aria-hidden={decorative ? true : undefined}>
++export default function GardenFlower({ kind, stage = 7, familyBud = false, sensoryDetails = 0, decorative = true }: { kind: FlowerKind; stage?: number; familyBud?: boolean; sensoryDetails?: number; decorative?: boolean }) {
++  return <div className={`garden-flower flower-${kind} growth-${stage}`} data-growth={GROWTH_STAGES[stage]} aria-hidden={decorative ? true : undefined}>
+     <div className="flower-ground" />
+-    {stage < 5 && <svg key={stage} className="sprout-drawing" viewBox="0 0 240 320" fill="none" aria-hidden="true">
+-      {stage === 0 ? <><path d="M76 296 Q120 284 166 297" stroke="#a2a88a" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 7" /><path d="M103 297 Q120 290 137 297" stroke="#a2a88a" strokeWidth="2" strokeLinecap="round" /></> : <>
+-        <path className="growing-stem" d={stage === 1 ? 'M120 294 Q116 273 122 249' : stage === 2 ? 'M120 294 Q108 245 125 193' : 'M120 294 Q107 215 128 140'} stroke="#6c8863" strokeWidth="5" strokeLinecap="round" />
+-        <path d={stage === 1 ? 'M119 273 C91 273 91 249 100 253 C112 255 122 264 119 273Z' : 'M117 254 C73 256 71 217 85 225 C106 228 121 241 117 254Z'} fill="#92aa79" opacity=".85" />
+-        <path d={stage === 1 ? 'M121 261 C144 259 147 240 135 245 C127 247 121 253 121 261Z' : 'M120 232 C158 233 171 194 152 205 C135 209 124 218 120 232Z'} fill="#7e9c70" opacity=".8" />
+-        {stage >= 3 && <><path d="M127 151 Q109 133 128 116 Q145 132 127 151" fill={kind === 'calendula' ? '#d8bb71' : '#d8dac2'} stroke="#80966b" strokeWidth="2" /><path d="M127 150 Q123 137 128 126" stroke="#8a9c74" strokeWidth="2" /></>}
++    {stage < 7 && <svg key={stage} className="sprout-drawing" viewBox="0 0 240 320" fill="none" aria-hidden="true">
++      {stage === 1 && <><ellipse className="garden-seed" cx="120" cy="291" rx="7" ry="5" fill="#8d8062" /><ellipse cx="120" cy="291" rx="19" ry="10" fill="#e8dc9a" opacity=".3" /></>}
++      {stage >= 2 && <>
++        <path className="growing-stem" d={stage === 2 ? 'M120 294 Q116 273 122 249' : stage === 3 ? 'M120 294 Q108 245 125 193' : 'M120 294 Q107 215 128 140'} stroke="#6c8863" strokeWidth="5" strokeLinecap="round" />
++        <path d={stage < 4 ? 'M119 273 C91 273 91 249 100 253 C112 255 122 264 119 273Z' : 'M117 254 C73 256 71 217 85 225 C106 228 121 241 117 254Z'} fill="#92aa79" opacity=".85" />
++        <path d={stage < 4 ? 'M121 261 C144 259 147 240 135 245 C127 247 121 253 121 261Z' : 'M120 232 C158 233 171 194 152 205 C135 209 124 218 120 232Z'} fill="#7e9c70" opacity=".8" />
++        {stage >= 5 && <><path d="M127 151 Q109 133 128 116 Q145 132 127 151" fill={kind === 'calendula' ? '#d8bb71' : '#d8dac2'} stroke="#80966b" strokeWidth="2" /><path d="M127 150 Q123 137 128 126" stroke="#8a9c74" strokeWidth="2" /></>}
+       </>}
+-      {stage === 4 && <><ellipse cx="116" cy="126" rx="10" ry="19" fill={kind === 'calendula' ? '#d8bb71' : '#f4f0df'} transform="rotate(-28 116 126)" /><ellipse cx="138" cy="126" rx="10" ry="19" fill={kind === 'calendula' ? '#e0c584' : '#fffbed'} transform="rotate(28 138 126)" /><path d="M117 141 Q128 149 139 140" stroke="#80966b" strokeWidth="3" /></>}
++      {stage === 6 && <><ellipse cx="116" cy="126" rx="10" ry="19" fill={kind === 'calendula' ? '#d8bb71' : '#f4f0df'} transform="rotate(-28 116 126)" /><ellipse cx="138" cy="126" rx="10" ry="19" fill={kind === 'calendula' ? '#e0c584' : '#fffbed'} transform="rotate(28 138 126)" /><path d="M117 141 Q128 149 139 140" stroke="#80966b" strokeWidth="3" /></>}
+     </svg>}
+-    {stage >= 5 && <Image className="flower-botanical" src={`/garden/${kind}.png`} alt="" width={512} height={768} sizes="(max-width: 520px) 170px, 260px" draggable={false} />}
++    {stage === 7 && <Image className="flower-botanical" src={`/garden/${kind}.png`} alt="" width={512} height={768} sizes="(max-width: 520px) 170px, 260px" draggable={false} />}
+     {familyBud && stage > 0 && <svg className="family-bud" viewBox="0 0 100 130" aria-hidden="true"><path d="M12 125 Q22 66 58 43" fill="none" stroke="#7c9568" strokeWidth="3" /><path d="M57 48 Q38 30 61 15 Q80 36 57 48" fill="#d9ccb2" stroke="#97a17a" strokeWidth="2" /><path d="M22 94 Q47 90 43 73 Q29 74 22 94" fill="#9bad83" /></svg>}
++    {stage >= 3 && sensoryDetails > 0 && <svg className="sensory-branches" viewBox="0 0 240 320" fill="none" aria-hidden="true">{Array.from({ length: sensoryDetails }, (_, index) => <g key={index} transform={'translate(' + ((index % 4) * 8) + ' ' + (-Math.floor(index / 4) * 7 - (index % 4) * 13) + ')'}><path d="M121 288 Q144 276 152 260" stroke="#8b9f72" strokeWidth="2" /><path d="M149 266 Q145 251 159 252 Q163 263 149 266" fill="#a5b48c" /></g>)}</svg>}
+     <span className="petal-light light-one" /><span className="petal-light light-two" />
+   </div>;
+ }
+diff --git a/components/GardenNameEditor.tsx b/components/GardenNameEditor.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/GardenNameEditor.tsx
+@@ -0,0 +1,38 @@
++'use client';
++
++import { useEffect, useRef, useState } from 'react';
++import { Mic, Square } from 'lucide-react';
++import { cleanGardenName, DEFAULT_GARDEN_NAME } from '../lib/garden-name';
++import { isStopSignal } from '../lib/garden';
++
++type NameSpeech = { lang: string; continuous: boolean; interimResults: boolean; onresult: ((event: { results: { length: number; [index: number]: { 0: { transcript: string } } } }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void; abort: () => void };
++
++export default function GardenNameEditor({ name, onSave }: { name: string; onSave: (name: string) => boolean }) {
++  const [draft, setDraft] = useState(name === DEFAULT_GARDEN_NAME ? '' : name);
++  const [permission, setPermission] = useState(false);
++  const [recording, setRecording] = useState(false);
++  const [notice, setNotice] = useState('');
++  const speech = useRef<NameSpeech | null>(null);
++  const epoch = useRef(0);
++  useEffect(() => { setDraft(name === DEFAULT_GARDEN_NAME ? '' : name); }, [name]);
++  useEffect(() => () => { epoch.current++; speech.current?.abort(); }, []);
++  function start() {
++    const browser = window as Window & { SpeechRecognition?: new () => NameSpeech; webkitSpeechRecognition?: new () => NameSpeech };
++    const Constructor = browser.SpeechRecognition || browser.webkitSpeechRecognition;
++    if (!Constructor) { setNotice('You can type a name below. Voice input is unavailable here.'); return; }
++    const token = ++epoch.current;
++    const input = new Constructor(); speech.current = input;
++    input.lang = 'en-US'; input.continuous = false; input.interimResults = true;
++    input.onresult = event => { if (token !== epoch.current) return; let text = ''; for (let index = 0; index < event.results.length; index++) text += event.results[index][0].transcript; if (isStopSignal(text)) { epoch.current++; input.abort(); setRecording(false); setNotice('We can leave this for another day.'); return; } setDraft(cleanGardenName(text.replace(/^(?:my name is|i am|i'm|this is)\s+/i, '').replace(/[.!?]+$/, ''))); };
++    input.onerror = () => { if (token === epoch.current) { setRecording(false); setNotice('You can type the name, or try again later.'); } };
++    input.onend = () => { if (token === epoch.current) { setRecording(false); speech.current = null; } };
++    try { input.start(); setRecording(true); setNotice('Listening. You can check the name before saving.'); } catch { setRecording(false); setNotice('You can type the name below.'); }
++  }
++  return <form className="garden-name-editor" onSubmit={event => { event.preventDefault(); epoch.current++; speech.current?.abort(); setRecording(false); if (onSave(draft)) setNotice('Your garden name is saved.'); else setNotice('The name could not be saved on this device.'); }}>
++    <label className="garden-field-label" htmlFor="garden-owner-name">Garden name</label>
++    <input id="garden-owner-name" autoComplete="off" maxLength={40} value={draft} onChange={event => setDraft(event.target.value)} placeholder="My Garden" />
++    <div className="dialog-actions"><button type="submit" className="garden-primary">Save name</button><button type="button" className="garden-secondary name-voice-button" aria-label={recording ? 'Finish saying the name' : 'Say a name'} onClick={() => { if (recording) speech.current?.stop(); else setPermission(true); }}>{recording ? <Square size={24} /> : <Mic size={24} />}<span>{recording ? 'Finish' : 'Say a name'}</span></button></div>
++    {permission && !recording && <div className="name-voice-permission"><p>Your browser may process speech online. This app does not save the recording. You can check the name before saving.</p><button className="garden-secondary" type="button" onClick={() => { setPermission(false); start(); }}>Allow voice input</button></div>}
++    {notice && <p className="dialog-note" role="status">{notice}</p>}
++  </form>;
++}
+diff --git a/components/GardenTopicCue.tsx b/components/GardenTopicCue.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/GardenTopicCue.tsx
+@@ -0,0 +1,23 @@
++'use client';
++
++import { Gift, Heart, House, Music2, Sun, Trees, Users, Utensils } from 'lucide-react';
++
++const cues = {
++  places: { label: 'Places', Icon: House }, people: { label: 'People', Icon: Users }, home: { label: 'Home', Icon: Heart },
++  food: { label: 'Food', Icon: Utensils }, music: { label: 'Music', Icon: Music2 }, outdoors: { label: 'Outside', Icon: Trees },
++  objects: { label: 'Objects', Icon: Gift }, seasons: { label: 'Seasons', Icon: Sun }, pastimes: { label: 'Pastimes', Icon: Heart },
++};
++
++export default function GardenTopicCue({ id, index, selected, disabled, previewing, onPreview, onLeave, onChoose }: {
++  id: string; index: number; selected: boolean; disabled: boolean; previewing: boolean;
++  onPreview: () => void; onLeave: () => void; onChoose: () => void;
++}) {
++  const { label, Icon } = cues[id as keyof typeof cues] || cues.places;
++  return <button className={'topic-bubble topic-' + index + (selected ? ' topic-selected' : '')} style={{ animationDelay: `${index * 400}ms` }} aria-label={label} data-preview={previewing || undefined} disabled={disabled}
++    onPointerMove={event => { if (!disabled && !previewing && event.pointerType === 'mouse') onPreview(); }}
++    onPointerLeave={event => { if (event.pointerType === 'mouse') onLeave(); }}
++    onTouchStart={() => { if (!disabled) onPreview(); }} onFocus={event => { if (!disabled && event.currentTarget.matches(':focus-visible')) onPreview(); }} onBlur={onLeave} onClick={onChoose}>
++    <span className="topic-cue-icon"><Icon size={76} strokeWidth={1.2} aria-hidden="true" /></span>
++    <span className="topic-title">{label}</span>
++  </button>;
++}
+diff --git a/components/MagicGardenEntry.tsx b/components/MagicGardenEntry.tsx
+new file mode 100644
+--- /dev/null
++++ b/components/MagicGardenEntry.tsx
+@@ -0,0 +1,17 @@
++'use client';
++
++import { useState } from 'react';
++
++export default function MagicGardenEntry({ disabled, entering, label, onEnter }: { disabled: boolean; entering: boolean; label: string; onEnter: () => void }) {
++  const [touched, setTouched] = useState(false);
++  return <div className="entrance-content">
++    <div className="entrance-identity"><p className="entrance-owner-name">{label}</p><h1>Memory Garden</h1></div>
++    <button className="enter-garden magic-entry" aria-label="Enter the garden" aria-busy={entering} disabled={disabled} data-touched={touched || undefined} onTouchStart={() => setTouched(true)} onBlur={() => setTouched(false)} onClick={onEnter}>
++      <svg viewBox="0 0 100 100" fill="none" aria-hidden="true" focusable="false">
++        <path d="M25 74C12 41 42 18 78 19C82 57 62 86 25 74Z" fill="#91ad88" fillOpacity=".55" stroke="#587851" strokeWidth="1.7" />
++        <path d="M21 81C34 61 52 43 70 28M36 61L31 43M48 48L61 50M56 40L54 29" stroke="#587851" strokeWidth="1.7" strokeLinecap="round" />
++      </svg>
++      <span className="magic-entry-label" aria-hidden="true">Enter</span>
++    </button>
++  </div>;
++}
+diff --git a/lib/garden-activities.ts b/lib/garden-activities.ts
+new file mode 100644
+--- /dev/null
++++ b/lib/garden-activities.ts
+@@ -0,0 +1,7 @@
++// Add a teammate's route here when their module is ready. These pages currently
++// explain their availability; no game or player is presented as functional.
++export const gardenActivities = [
++  { id: 'picture-together', name: 'Picture Together', description: 'Share a picture and a little moment together.', audience: 'Families & friends', icon: 'picture' },
++  { id: 'familiar-sounds', name: 'Familiar Sounds', description: 'Spend a little time with sounds that feel close to you.', audience: 'With a companion', icon: 'sounds' },
++  { id: 'little-notes', name: 'Little Notes', description: 'Leave a few kind words for someone close to you.', audience: 'Families & friends', icon: 'notes' },
++] as const;
+diff --git a/lib/garden-contact.ts b/lib/garden-contact.ts
+new file mode 100644
+--- /dev/null
++++ b/lib/garden-contact.ts
+@@ -0,0 +1,31 @@
++export type GardenContact = { name: string; phone: string };
++export const CONTACT_KEY = 'memory-garden-contact-v1';
++
++export function normalisePhone(phone: string): string | null {
++  const clean = phone.trim();
++  if (!/^\+?[\d\s().-]+$/.test(clean)) return null;
++  const digits = clean.replace(/\D/g, '');
++  if (digits.length < 7 || digits.length > 15) return null;
++  return (clean.startsWith('+') ? '+' : '') + digits;
++}
++
++export function readContact(): GardenContact | null {
++  try {
++    const saved = JSON.parse(localStorage.getItem(CONTACT_KEY) || 'null');
++    if (typeof saved?.name !== 'string' || !saved.name.trim() || saved.name.length > 40 || typeof saved.phone !== 'string') return null;
++    const phone = normalisePhone(saved.phone);
++    return phone ? { name: saved.name.trim(), phone } : null;
++  } catch { return null; }
++}
++
++export function writeContact(contact: GardenContact | null): boolean {
++  try {
++    if (!contact) localStorage.removeItem(CONTACT_KEY);
++    else {
++      const phone = normalisePhone(contact.phone);
++      if (!phone || !contact.name.trim() || contact.name.length > 40) return false;
++      localStorage.setItem(CONTACT_KEY, JSON.stringify({ name: contact.name.trim(), phone }));
++    }
++    return true;
++  } catch { return false; }
++}
+diff --git a/lib/garden-name.ts b/lib/garden-name.ts
+new file mode 100644
+--- /dev/null
++++ b/lib/garden-name.ts
+@@ -0,0 +1,14 @@
++export const DEFAULT_GARDEN_NAME = 'My Garden';
++export const GARDEN_NAME_KEY = 'gardenName';
++export const NAME_PROMPT_KEY = 'gardenNameAsked';
++export function cleanGardenName(value: string) { return value.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40); }
++export function gardenLabel(value: string) { const name = cleanGardenName(value); return !name || /^my garden$/i.test(name) ? DEFAULT_GARDEN_NAME : `${name}'s garden`; }
++export function readGardenName(search = '') {
++  const fromUrl = cleanGardenName(new URLSearchParams(search).get('name') || '');
++  if (fromUrl) { try { localStorage.setItem(GARDEN_NAME_KEY, fromUrl); } catch {} return fromUrl; }
++  try { return cleanGardenName(localStorage.getItem(GARDEN_NAME_KEY) || '') || DEFAULT_GARDEN_NAME; } catch { return DEFAULT_GARDEN_NAME; }
++}
++export function writeGardenName(value: string) {
++  const name = cleanGardenName(value) || DEFAULT_GARDEN_NAME;
++  try { localStorage.setItem(GARDEN_NAME_KEY, name); localStorage.setItem(NAME_PROMPT_KEY, 'true'); return name; } catch { return null; }
++}
+diff --git a/lib/garden.ts b/lib/garden.ts
+index 03c9d01..e913028 100644
+--- a/lib/garden.ts
++++ b/lib/garden.ts
+@@ -6,17 +6,27 @@ export type GardenEntry = {
+ export type GardenMemory = {
+   id: string; title: string; kind: FlowerKind; stage: number; status: 'growing' | 'paused' | 'bloomed';
+   entries: GardenEntry[]; createdAt: string; example?: boolean; familyBud?: boolean; opening?: string;
++  growthVersion?: 2; sensoryDetails?: number;
+ };
+-export type GardenStore = { version: 1; flowers: GardenMemory[]; current: GardenMemory | null };
++export type GardenStore = { version: 1; garden_id?: string; flowers: GardenMemory[]; current: GardenMemory | null };
+ export const GARDEN_KEY = 'memory-garden-v1';
++export const GARDEN_ID_KEY = 'garden_id';
+ export const MAX_EXPRESSION = 1200;
++export const GROWTH_STAGES = ['empty', 'seed', 'sprout', 'stem', 'leaf', 'bud', 'petal', 'bloom'] as const;
+ export const flowerNames: Record<FlowerKind, string> = { daisy: 'Daisy', gardenia: 'Gardenia', calendula: 'Calendula' };
+ export const OPENING = 'What is a place you have enjoyed with someone close to you?';
+ export const COMFORT = 'That is okay. We can visit another day. You can rest with someone you trust nearby.';
++export const REASSURANCE = 'No need to remember everything. Being here together is enough.';
+ export const topics = [
+   { id: 'places', title: 'Somewhere special', label: 'A place, a journey, a little adventure', question: OPENING },
+   { id: 'people', title: 'Someone dear', label: 'A person you would like to talk about', question: 'Who would you like to tell me a little about?' },
+   { id: 'home', title: 'A moment at home', label: 'Everyday things that feel like you', question: 'What is a little moment at home you would like to share?' },
++  { id: 'food', title: 'Something delicious', label: 'A meal, a scent, a familiar kitchen', question: 'What is a food you enjoy sharing with someone?' },
++  { id: 'music', title: 'A familiar song', label: 'A tune, a voice, a little melody', question: 'What is a song you enjoy listening to?' },
++  { id: 'outdoors', title: 'A little fresh air', label: 'A walk, a view, a peaceful place', question: 'What is an outdoor place you enjoy spending time in?' },
++  { id: 'objects', title: 'Something you treasure', label: 'An object with a little story', question: 'What is an object you would like to tell me about?' },
++  { id: 'seasons', title: 'A favorite season', label: 'A time of year that feels special', question: 'What do you enjoy about a season you like?' },
++  { id: 'pastimes', title: 'A small pleasure', label: 'Something you like doing in your own time', question: 'What is something you enjoy doing in a quiet moment?' },
+ ];
+ 
+ export function isStopSignal(text: string) {
+@@ -33,19 +43,21 @@ export function chooseFlower(text: string): FlowerKind {
+   return 'daisy';
+ }
+ export function newMemory(opening = OPENING): GardenMemory {
+-  return { id: crypto.randomUUID(), title: 'A little moment', opening, kind: 'daisy', stage: 0, status: 'growing', entries: [], createdAt: new Date().toISOString() };
++  return { id: crypto.randomUUID(), title: 'A little moment', opening, kind: 'daisy', stage: 0, growthVersion: 2, sensoryDetails: 0, status: 'growing', entries: [], createdAt: new Date().toISOString() };
+ }
+ export function addPatient(memory: GardenMemory, text: string): GardenMemory {
+   const clean = text.trim();
+-  if (!clean || clean.length > MAX_EXPRESSION) return memory;
++  if (!clean || clean.length > MAX_EXPRESSION || memory.status !== 'growing') return memory;
+   if (isStopSignal(clean)) return { ...memory, status: 'paused' };
+   const previous = memory.entries.filter(entry => entry.speaker === 'patient');
+   const distinct = !previous.some(entry => normalise(entry.text) === normalise(clean));
+   const meaningful = normalise(clean).length > 1 && !/^(嗯+|好+|是的?|可以|谢谢|对的?|yes|yeah|yep|ok|okay|sure|thanks|thankyou|uhh?|hmm?)$/.test(normalise(clean));
+   const first = previous.length === 0;
+-  const stage = first ? 1 : distinct && meaningful ? Math.min(4, memory.stage + 1) : memory.stage;
++  const stage = distinct && meaningful ? Math.min(7, memory.stage + 1) : memory.stage;
++  const sensory = distinct && meaningful && /\b(smell|scent|fragrance|aroma|sound|sounds|heard|hear|waves|music|soft|rough|smooth|touch|felt|warm|cold|hot|cool|shell|cup|bowl|photo|blanket|breeze)\b|气味|香|声音|浪声|触感|柔软|温度|温暖|凉|贝壳|碗/i.test(clean);
+   return {
+     ...memory, status: 'growing', stage, kind: first ? chooseFlower(clean) : memory.kind,
++    sensoryDetails: (memory.sensoryDetails || 0) + (sensory ? 1 : 0),
+     title: first ? clean.replace(/[。！？.!?].*$/, '').slice(0, 64).trim() : memory.title,
+     entries: [...memory.entries, { id: crypto.randomUUID(), speaker: 'patient', text: clean, createdAt: new Date().toISOString() }],
+   };
+@@ -56,7 +68,7 @@ export function addFamily(memory: GardenMemory, text: string, name: string, cons
+ }
+ export function finishMemory(memory: GardenMemory): GardenMemory | null {
+   if (!memory.entries.some(entry => entry.speaker === 'patient')) return null;
+-  return { ...memory, status: 'bloomed', stage: 5 };
++  return { ...memory, status: memory.stage === 7 ? 'bloomed' : 'paused' };
+ }
+ export function localReply(memory: GardenMemory): string {
+   const patient = memory.entries.filter(entry => entry.speaker === 'patient');
+@@ -89,24 +101,94 @@ export function validMemory(value: unknown): value is GardenMemory {
+   const memory = value as GardenMemory;
+   return typeof memory.id === 'string' && typeof memory.title === 'string' && memory.title.length <= 100
+     && ['daisy', 'gardenia', 'calendula'].includes(memory.kind)
+-    && Number.isInteger(memory.stage) && memory.stage >= 0 && memory.stage <= 5
++    && Number.isInteger(memory.stage) && memory.stage >= 0 && memory.stage <= (memory.growthVersion === 2 ? 7 : 5)
++    && (memory.growthVersion === undefined || memory.growthVersion === 2)
++    && (memory.sensoryDetails === undefined || (Number.isInteger(memory.sensoryDetails) && memory.sensoryDetails >= 0))
+     && ['growing', 'paused', 'bloomed'].includes(memory.status)
+     && (memory.opening === undefined || (typeof memory.opening === 'string' && memory.opening.length <= 300))
+-    && typeof memory.createdAt === 'string' && Array.isArray(memory.entries) && memory.entries.every(validEntry);
++    && typeof memory.createdAt === 'string' && Array.isArray(memory.entries) && memory.entries.every(validEntry)
++    && (memory.sensoryDetails || 0) <= memory.entries.filter(entry => entry.speaker === 'patient').length;
++}
++
++function getGardenId(preferred?: string): string {
++  if (preferred && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(preferred)) return preferred;
++  const saved = localStorage.getItem(GARDEN_ID_KEY);
++  return saved && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(saved) ? saved : crypto.randomUUID();
++}
++
++function encodeFlower(memory: GardenMemory) {
++  return {
++    id: memory.id, memory_title: memory.title, stage: GROWTH_STAGES[memory.stage],
++    created_at: Date.parse(memory.createdAt),
++    details: memory.entries.filter(entry => entry.speaker === 'patient').map(entry => entry.text),
++    // Preserve provenance and resuming context alongside the simple public fields.
++    kind: memory.kind, status: memory.status, entries: memory.entries,
++    familyBud: memory.familyBud || false, sensoryDetails: memory.sensoryDetails || 0, opening: memory.opening,
++  };
++}
++
++function decodeFlower(value: unknown): GardenMemory {
++  if (!value || typeof value !== 'object') throw new Error('Invalid flower');
++  const raw = value as Record<string, unknown>;
++  const stage = GROWTH_STAGES.indexOf(raw.stage as typeof GROWTH_STAGES[number]);
++  if (stage < 0 || typeof raw.created_at !== 'number' || !Number.isFinite(raw.created_at)) throw new Error('Invalid flower stage or date');
++  const createdAt = new Date(raw.created_at).toISOString();
++  const details = raw.details;
++  if (!Array.isArray(details) || !details.every(detail => typeof detail === 'string' && detail.length <= 4000)) throw new Error('Invalid flower details');
++  const entries = Array.isArray(raw.entries) ? raw.entries : details.map((text, index) => ({ id: String(raw.id) + '-detail-' + index, speaker: 'patient', text, createdAt }));
++  const memory = {
++    id: raw.id, title: raw.memory_title, stage, growthVersion: 2,
++    createdAt, kind: raw.kind || chooseFlower(details.join(' ')),
++    status: raw.status || (stage === 7 ? 'bloomed' : 'paused'), entries,
++    familyBud: raw.familyBud === true, sensoryDetails: raw.sensoryDetails || 0, opening: raw.opening,
++  };
++  if (!validMemory(memory)) throw new Error('Invalid flower data');
++  return memory;
+ }
+ 
+ export function readGarden(): GardenStore {
+   const raw = localStorage.getItem(GARDEN_KEY);
+-  if (!raw) return { version: 1, flowers: [], current: null };
++  if (!raw) {
++    const empty: GardenStore = { version: 1, garden_id: getGardenId(), flowers: [], current: null };
++    if (!writeGarden(empty)) throw new Error('Local storage unavailable');
++    return empty;
++  }
+   const saved = JSON.parse(raw);
+-  if (saved?.version !== 1 || !Array.isArray(saved.flowers) || !saved.flowers.every(validMemory)
+-    || (saved.current !== null && !validMemory(saved.current))) throw new Error('Invalid garden data');
+-  return { ...saved, flowers: saved.flowers.filter((flower: GardenMemory) => !flower.example), current: saved.current ? { ...saved.current, status: 'paused' } : null };
++  let garden: GardenStore;
++  if (saved?.version === 2 || (saved?.garden_id && saved?.version === undefined)) {
++    if (!Array.isArray(saved.flowers)) throw new Error('Invalid garden data');
++    garden = { version: 1, garden_id: getGardenId(saved.garden_id), flowers: saved.flowers.map(decodeFlower), current: saved.current ? decodeFlower(saved.current) : null };
++  } else {
++    if (saved?.version !== 1 || !Array.isArray(saved.flowers) || !saved.flowers.every(validMemory)
++      || (saved.current !== null && !validMemory(saved.current))) throw new Error('Invalid garden data');
++    const migrate = (memory: GardenMemory): GardenMemory => memory.growthVersion === 2 ? memory : {
++      ...memory, growthVersion: 2, stage: [0, 2, 4, 5, 6, 7][memory.stage], sensoryDetails: 0,
++    };
++    garden = { version: 1, garden_id: getGardenId(saved.garden_id), flowers: saved.flowers.filter((flower: GardenMemory) => !flower.example).map(migrate), current: saved.current ? migrate(saved.current) : null };
++  }
++  if (garden.current) garden.current = { ...garden.current, status: 'paused' };
++  // Only migrate validated data. Malformed originals remain untouched.
++  writeGarden(garden);
++  return garden;
+ }
+ 
+ export function writeGarden(store: GardenStore) {
+-  try { localStorage.setItem(GARDEN_KEY, JSON.stringify(store)); return true; }
+-  catch { return false; }
++  try {
++    const garden_id = getGardenId(store.garden_id);
++    const data = { version: 2, garden_id, flowers: store.flowers.map(encodeFlower), current: store.current ? encodeFlower(store.current) : null };
++    localStorage.setItem(GARDEN_KEY, JSON.stringify(data));
++    localStorage.setItem(GARDEN_ID_KEY, garden_id);
++    return true;
++  } catch { return false; }
++}
++
++export function resetGarden(): GardenStore {
++  const gameKeys: string[] = [];
++  for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('memory-garden-game-')) gameKeys.push(key); }
++  for (const key of [GARDEN_KEY, GARDEN_ID_KEY, 'gardenName', 'gardenNameAsked', 'memory-garden-contact-v1', 'memory-garden-audio', ...gameKeys]) localStorage.removeItem(key);
++  const fresh: GardenStore = { version: 1, garden_id: crypto.randomUUID(), flowers: [], current: null };
++  if (!writeGarden(fresh)) throw new Error('Local storage unavailable');
++  return fresh;
+ }
+ 
+ export function validConversation(value: unknown): value is { entries: GardenEntry[] } {
+diff --git a/tests/garden.test.cjs b/tests/garden.test.cjs
+index 8d20f97..a14c64f 100644
+--- a/tests/garden.test.cjs
++++ b/tests/garden.test.cjs
+@@ -26,8 +26,9 @@ test('patient expression grows gradually, repeats and acknowledgments do not bec
+   assert.equal(garden.addPatient(second, '嗯').stage, 2);
+   let memory = second;
+   for (const text of ['沙子很软', '口袋里有贝壳', '风吹着衣服', '那时候很开心']) memory = garden.addPatient(memory, text);
+-  assert.equal(memory.stage, 4);
+-  assert.equal(garden.finishMemory(first).stage, 5, 'one short expression can still bloom');
++  assert.equal(memory.stage, 6);
++  assert.equal(garden.finishMemory(first).stage, 1, 'saving never skips growth stages');
++  assert.equal(garden.finishMemory(first).status, 'paused');
+   assert.equal(garden.finishMemory(garden.newMemory()), null);
+ });
+ 
+@@ -47,7 +48,8 @@ test('explicit discomfort stops without growth, repetition and unconfirmed famil
+ 
+ test('local storage restores a paused draft and never overwrites malformed data on read', () => {
+   let stored = null;
+-  global.localStorage = { getItem: () => stored, setItem: (_, value) => { stored = value; } };
++  const ids = {};
++  global.localStorage = { getItem: key => key === garden.GARDEN_KEY ? stored : ids[key] || null, setItem: (key, value) => { if (key === garden.GARDEN_KEY) stored = value; else ids[key] = value; } };
+   const memory = garden.addPatient(garden.newMemory(), '我和家人去海边');
+   assert.equal(garden.writeGarden({ version: 1, flowers: [], current: memory }), true);
+   const loaded = garden.readGarden();
+@@ -104,7 +106,7 @@ test('API uses structured replies without storing response state; invalid, harmf
+ });
+ 
+ test('English topics begin empty and grow only from confirmed expressions', () => {
+-  assert.equal(garden.topics.length, 3);
++  assert.equal(garden.topics.length, 9);
+   for (const topic of garden.topics) {
+     const memory = garden.newMemory(topic.question);
+     assert.equal(memory.stage, 0); assert.equal(memory.entries.length, 0);
+@@ -132,3 +134,91 @@ test('fresh gardens have no examples and migration preserves personal stories',
+   assert.deepEqual(garden.readGarden().flowers.map(f => f.id), [personal.id]);
+   delete global.localStorage;
+ });
++
++test('eight growth states advance once per detail, never through saving, family notes or pauses', () => {
++  assert.deepEqual([...garden.GROWTH_STAGES], ['empty','seed','sprout','stem','leaf','bud','petal','bloom']);
++  let memory = garden.newMemory();
++  const details = ['A walk with Dad', 'The waves sounded loud', 'The sand felt soft', 'He held my hand', 'We walked by the water', 'I carried a shell', 'We sat near the path'];
++  for (let index = 0; index < details.length; index++) {
++    const previous = memory;
++    memory = garden.addPatient(memory, details[index]);
++    assert.equal(memory.stage, index + 1);
++    assert.equal(memory.stage - previous.stage, 1);
++    assert.equal(garden.finishMemory(memory).stage, memory.stage);
++    const withFamily = garden.addFamily(memory, 'My impression is that we went together.', 'Alex', true);
++    assert.equal(withFamily.stage, memory.stage);
++    assert.equal(garden.addPatient(memory, details[index]).stage, memory.stage);
++    assert.equal(garden.addPatient(memory, 'I need a rest').stage, memory.stage);
++    assert.equal(garden.addPatient({...memory,status:'paused'}, 'A new detail').stage, memory.stage);
++  }
++  assert.equal(garden.finishMemory(memory).status,'bloomed');
++  assert.ok(memory.sensoryDetails > 0);
++  assert.equal(garden.addPatient(memory, 'We watched the water').stage,7);
++});
++test('legacy stages migrate without losing flowers or changing their visual maturity', () => {
++  const original = garden.addPatient(garden.newMemory(), 'Our garden at home');
++  const legacy = {...original,stage:5,status:'bloomed'}; delete legacy.growthVersion; delete legacy.sensoryDetails;
++  let stored=JSON.stringify({version:1,flowers:[legacy],current:{...legacy,stage:1,status:'growing',id:'draft'}});
++  global.localStorage={getItem:()=>stored};
++  const loaded=garden.readGarden();
++  assert.equal(loaded.flowers[0].stage,7); assert.equal(loaded.flowers[0].growthVersion,2);
++  assert.equal(loaded.current.stage,2); assert.equal(loaded.current.status,'paused');
++  stored=JSON.stringify(loaded);
++  assert.deepEqual(garden.readGarden(),loaded,'migration is applied only once');
++  delete global.localStorage;
++});
++test('contact numbers accept phone formats, reject URI injection, and stay separate from story data', () => {
++  const contacts=load('lib/garden-contact.ts');
++  assert.equal(contacts.normalisePhone('+1 (202) 555-0123'),'+12025550123');
++  for(const phone of ['123','tel:5555555555','5555555555?body=hello','5555555555;ext=1','javascript:alert(1)']) assert.equal(contacts.normalisePhone(phone),null);
++  const data={};
++  global.localStorage={getItem:key=>data[key]||null,setItem:(key,value)=>{data[key]=value},removeItem:key=>{delete data[key]}};
++  assert.equal(contacts.writeContact({name:'Alex',phone:'+1 (202) 555-0123'}),true);
++  assert.deepEqual(contacts.readContact(),{name:'Alex',phone:'+12025550123'});
++  assert.equal(data[garden.GARDEN_KEY],undefined);
++  assert.equal(contacts.writeContact(null),true); assert.equal(contacts.readContact(),null);
++  delete global.localStorage;
++});
++
++test('device garden UUID and named stages persist across reloads, preserving family provenance', () => {
++  const data = {};
++  global.localStorage={getItem:key=>data[key]||null,setItem:(key,value)=>{data[key]=value},removeItem:key=>{delete data[key]}};
++  const fresh=garden.readGarden();
++  assert.match(fresh.garden_id,/^[0-9a-f-]{36}$/);
++  assert.equal(garden.readGarden().garden_id,fresh.garden_id);
++  let memory=garden.addPatient(garden.newMemory(),'A walk with Dad');
++  memory=garden.addFamily(memory,'My impression is that we walked near home.','Alex',true);
++  assert.equal(garden.writeGarden({...fresh,flowers:[garden.finishMemory(memory)]}),true);
++  const raw=JSON.parse(data[garden.GARDEN_KEY]);
++  assert.equal(raw.garden_id,fresh.garden_id);
++  assert.equal(raw.flowers[0].stage,'seed');
++  assert.equal(raw.flowers[0].memory_title,'A walk with Dad');
++  assert.deepEqual(raw.flowers[0].details,['A walk with Dad']);
++  assert.equal(raw.flowers[0].entries.at(-1).speaker,'family');
++  const loaded=garden.readGarden();
++  assert.equal(loaded.flowers[0].stage,1);assert.equal(loaded.flowers[0].entries.at(-1).name,'Alex');
++  assert.equal(loaded.garden_id,fresh.garden_id);
++  data[garden.GARDEN_KEY]=JSON.stringify({...raw,flowers:[{...raw.flowers[0],stage:'unknown'}]});
++  const malformed=data[garden.GARDEN_KEY];assert.throws(()=>garden.readGarden());assert.equal(data[garden.GARDEN_KEY],malformed);
++  delete global.localStorage;
++});
++test('simple public flower documents import their actual stage and reset removes only app-owned data', () => {
++  const id=crypto.randomUUID();
++  const data={other_site:'keep',gardenName:'Mary',garden_id:id};
++  data['memory-garden-game-demo-' + id] = 'demo progress';
++  data[garden.GARDEN_KEY]=JSON.stringify({garden_id:id,flowers:[{id:'flower_1',memory_title:'A day at the beach',stage:'bud',created_at:123456789,details:['There was a breeze','Dad was there','I heard the gulls']}]});
++  global.localStorage={get length(){return Object.keys(data).length},key:index=>Object.keys(data)[index]||null,getItem:key=>data[key]||null,setItem:(key,value)=>{data[key]=value},removeItem:key=>{delete data[key]}};
++  const loaded=garden.readGarden();assert.equal(loaded.flowers[0].stage,5);assert.equal(loaded.flowers[0].entries.length,3);
++  const fresh=garden.resetGarden();assert.notEqual(fresh.garden_id,id);assert.deepEqual(fresh.flowers,[]);assert.equal(data.other_site,'keep');assert.equal(data.gardenName,undefined);
++  assert.equal(data['memory-garden-game-demo-' + id],undefined);
++  delete global.localStorage;
++});
++test('garden names prefer URL, then local storage, then My Garden, with stable possessive labels', () => {
++  const names=load('lib/garden-name.ts');const data={};
++  global.localStorage={getItem:key=>data[key]||null,setItem:(key,value)=>{data[key]=value}};
++  assert.equal(names.readGardenName(''),'My Garden');assert.equal(names.gardenLabel('My Garden'),'My Garden');
++  assert.equal(names.writeGardenName('  Mary  '),'Mary');assert.equal(names.readGardenName(''),'Mary');assert.equal(names.gardenLabel('Mary'),"Mary's garden");
++  assert.equal(names.readGardenName('?name=James'),'James');assert.equal(data.gardenName,'James');assert.equal(names.readGardenName(''),'James');
++  assert.equal(names.cleanGardenName('A'.repeat(100)).length,40);
++  delete global.localStorage;
++});

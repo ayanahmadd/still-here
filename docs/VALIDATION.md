@@ -10,9 +10,32 @@
 
 ## Not verified by these checks
 
-- Real microphone capture, browser speech-provider availability or Chinese recognition quality.
+- Real microphone capture, browser speech-provider availability or English recognition quality.
 - A real model response with the owner's API credentials, multilingual model quality, or exhaustive protection against fabricated memories.
 - Clinical benefit, suitability for an individual patient, or comprehensive accessibility conformance.
 - Public-host authentication, family sharing, durable rate limits, or multi-device data recovery. These are not implemented in the local prototype.
 
-All example memories are fictional. Automated provider and voice checks use test doubles, not real patient data or a paid model call.
+Fresh gardens contain no example memories. Automated provider and voice checks use test doubles, not real patient data or a paid model call.
+
+## M1–M9 incremental checks
+
+- Ten domain/API tests include the eight-stage growth invariant, preserving saved stages, one-time migration of legacy growth data, and phone-number validation with contact/story storage separation.
+- Browser checks cover the one-button entrance and 750ms transition, three staggered invitations, whole-set replacement, no plants before a confirmed answer, seed-only first expression, resuming saved growth, separate family consent, the activity drawer, routes and return links, phone URI generation, and idle pause.
+- The 30-second idle path is tested with only that timer shortened by a test double. Native voice and late cloud responses are also mocked. No telephone call is placed.
+- Three teammate game entry points are scaffolds labeled Coming soon; gameplay is not implemented.
+
+## Entrance refinement after local review
+
+The entrance-only additions are in `app/entrance.css`, imported after `garden.css`. The existing watercolor asset, palette variables, garden screens, and input interactions remain in use.
+
+- Title: 63.8px desktop / 48.4px mobile (+10%), weight 600.
+- Shared title/subtitle halo: wide white radial gradient, opacity 0.4.
+- Content: 5vw left offset. The entrance image crop keeps the gate and path visible on the right.
+- CTA: text only; rgba(60,90,60,0.8), 4px backdrop blur. Fine-pointer hover scales 1.05 with opacity 0.9 and a restrained white border glow.
+- Click: centered, low-opacity 650ms ripple; supports keyboard activation.
+- Background: nested motion wrapper scales 1 to 1.03 over 20 seconds, ease-in-out, alternate infinite. Keeping the breathing transform on a separate wrapper avoids conflicting with the entry zoom.
+- Gate: decorative right-path hover region activates a faint 3.5-second breathing glow; it is not a separate navigation control.
+- Entry: the outer background frame scales to 1.07 and fades out over 750ms as a central light expands. A separate `arriving` state keeps that light mounted after switching to the empty garden, then fades it for 550ms to avoid an abrupt cut.
+- Reduced motion: disables decorative movement and skips the transition delay.
+
+Production build and browser checks passed at 320, 390, 768, 1024, 1440, and 1920 CSS px. Checks included halo/typography, CTA hover and ripple, gate cue, breathing duration and scale, transition completion, no flowers, keyboard entry, and reduced motion. GitHub publication remains pending user approval.

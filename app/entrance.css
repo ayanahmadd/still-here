@@ -1,0 +1,199 @@
+/* Entrance-only polish. Keep the existing garden palette and typefaces. */
+.screen-entrance {
+  overflow: hidden;
+}
+
+.screen-entrance .entrance-content {
+  position: relative;
+  z-index: 1;
+  transform: translateX(-5vw);
+}
+
+.entrance-copy {
+  position: relative;
+  isolation: isolate;
+}
+
+.entrance-copy::before {
+  content: '';
+  position: absolute;
+  inset: -140px -190px;
+  z-index: -1;
+  background: radial-gradient(ellipse at center, #fff 0%, #ffffffb3 30%, #fff0 72%);
+  opacity: .4;
+  pointer-events: none;
+}
+
+.screen-entrance h1 {
+  font-size: 63.8px; /* Existing 58px × 1.1 */
+  font-weight: 600;
+}
+
+.screen-entrance .enter-garden {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: rgba(60, 90, 60, .8);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid #ffffff38;
+  box-shadow: 0 5px 20px #31463a12;
+  transition: transform 450ms ease, background 450ms ease,
+    border-color 450ms ease, box-shadow 450ms ease;
+}
+
+.screen-entrance .enter-garden:disabled {
+  opacity: 1;
+}
+
+.screen-entrance .enter-garden::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff2e, #fff0 72%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+}
+
+.entrance-landscape-frame,
+.entrance-landscape-motion {
+  position: absolute;
+  inset: 0;
+}
+
+.entrance-landscape-frame {
+  z-index: -3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.entrance-landscape-motion {
+  animation: entrance-breathe 20s ease-in-out alternate infinite;
+}
+
+.screen-entrance .entrance-landscape-motion .garden-landscape {
+  z-index: 0;
+  object-position: right bottom;
+}
+
+.garden-path-hover {
+  position: absolute;
+  inset: 35% 0 0 58%;
+  z-index: 0;
+}
+
+.garden-gate-glow {
+  position: absolute;
+  top: 52%;
+  left: 85%;
+  width: 140px;
+  height: 95px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, #fffde6b3, #fffbe235 35%, #fff0 72%);
+  filter: blur(8px);
+  opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .screen-entrance .enter-garden:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: rgba(60, 90, 60, .9);
+    border-color: #ffffffa6;
+    box-shadow: 0 0 18px #ffffff40, 0 6px 22px #31463a18;
+  }
+
+  .screen-entrance:has(.garden-path-hover:hover) .garden-gate-glow {
+    animation: gate-breathe 3.5s ease-in-out infinite;
+  }
+}
+
+.screen-entrance.scene-entering .entrance-content {
+  animation: entrance-copy-away 750ms ease-in-out both;
+}
+
+.screen-entrance.scene-entering .entrance-landscape-frame {
+  animation: entrance-walk 750ms ease-in-out both;
+}
+
+.screen-entrance.scene-entering .enter-garden::after {
+  animation: entrance-ripple 650ms ease-out both;
+}
+
+.entry-transition-light {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+}
+
+.entry-transition-light::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background: radial-gradient(ellipse at center, #fffef8 0%, #fffef8eb 25%, #fffef800 70%);
+  animation: entrance-light 750ms ease-in-out both;
+}
+
+.entry-transition-light.is-arriving::before {
+  animation: entrance-light-away 550ms ease-out both;
+}
+
+@keyframes entrance-breathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.03); }
+}
+
+@keyframes gate-breathe {
+  0%, 100% { opacity: .08; }
+  50% { opacity: .3; }
+}
+
+@keyframes entrance-copy-away {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes entrance-walk {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.07); opacity: 0; }
+}
+
+@keyframes entrance-ripple {
+  0% { transform: translate(-50%, -50%) scale(.1); opacity: .65; }
+  100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+}
+
+@keyframes entrance-light {
+  from { transform: scale(.35); opacity: 0; }
+  to { transform: scale(2.4); opacity: 1; }
+}
+
+@keyframes entrance-light-away {
+  from { transform: scale(2.4); opacity: 1; }
+  to { transform: scale(2.55); opacity: 0; }
+}
+
+@media (min-aspect-ratio: 16/9) {
+  .garden-gate-glow { left: 89%; }
+}
+
+@media (max-width: 520px) {
+  .screen-entrance h1 { font-size: 48.4px; } /* Existing 44px × 1.1 */
+  .entrance-copy::before { inset: -110px -65px; }
+  .screen-entrance .entrance-landscape-motion .garden-landscape { object-position: 90% bottom; }
+  .garden-gate-glow { left: 83%; width: 100px; }
+}
+
+/* Decorative motion is optional; reduced motion never blocks entry. */
+@media (prefers-reduced-motion: reduce) {
+  .entry-transition-light { display: none; }
+  .screen-entrance .enter-garden:hover:not(:disabled) { transform: none; }
+}
+
+.quiet-motion .entry-transition-light { display: none; }
+.quiet-motion .screen-entrance .enter-garden:hover:not(:disabled) { transform: none; }

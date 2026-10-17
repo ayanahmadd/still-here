@@ -22,3 +22,9 @@ Subjects:
 1. A single elegant white marguerite daisy plant, warm golden central disk, one fully open white daisy facing slightly upward in the upper center, one small unopened bud, fine green stem with two delicate leaves, entire plant from blossom down to tiny root base.
 2. A single elegant gardenia plant, one fully open layered ivory gardenia blossom in the upper center, one small unopened bud, slender green stem with two dark sage oval leaves, entire plant from blossom down to tiny root base.
 3. A single elegant calendula plant, one fully open soft warm gold calendula flower in the upper center, one small unopened bud, slender green stem with two narrow leaves, entire plant from blossom down to tiny root base.
+
+## Empty meadow entrance and conversation background
+
+- File: `public/garden/empty-garden-background.png`. Generated with the built-in imagegen tool, copied without editing the original.
+- Replaces the earlier decorative flowering landscape in the app. No flowers or fictional stories are prefilled. Interactive plants appear only after confirmed patient expression.
+- Prompt: A refined hand painted watercolor empty meadow, pale sage grass, light earth, misty trees, a distant wooden gate on the right, ivory morning mist and generous negative space. Absolutely no flowers, blossoms, buds, people, animals, text, logos, or UI. Adult, dignified botanical storybook style, low saturation, warm paper grain, delicate transparent pigment washes. Wide 16:9 composition.

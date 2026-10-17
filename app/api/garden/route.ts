@@ -13,9 +13,9 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
     || (request.headers.get('origin') && request.headers.get('origin') !== url.origin)) {
-    return Response.json({ error: '此原型的云端对话仅支持本机访问。' }, { status: 403, headers });
+    return Response.json({ error: 'Cloud conversations in this prototype are available on localhost only.' }, { status: 403, headers });
   }
-  if (!request.headers.get('content-type')?.includes('application/json')) return Response.json({ error: '请发送文字内容。' }, { status: 415, headers });
+  if (!request.headers.get('content-type')?.includes('application/json')) return Response.json({ error: 'Please send text as JSON.' }, { status: 415, headers });
   let body;
   try {
     const reader = request.body?.getReader();
@@ -26,18 +26,18 @@ export async function POST(request: Request) {
       const { done, value } = await reader.read();
       if (done) break;
       length += value.byteLength;
-      if (length > 80000) { await reader.cancel(); return Response.json({ error: '这段内容有些长，请分开讲。' }, { status: 413, headers }); }
+      if (length > 80000) { await reader.cancel(); return Response.json({ error: 'This is a little long. Please share it in smaller parts.' }, { status: 413, headers }); }
       chunks.push(value);
     }
     body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  } catch { return Response.json({ error: '刚才的内容没有读取成功。' }, { status: 400, headers }); }
+  } catch { return Response.json({ error: 'Your words could not be read.' }, { status: 400, headers }); }
   if (!validConversation(body) || (body as { cloudConsent?: boolean }).cloudConsent !== true) {
-    return Response.json({ error: '请先同意云端处理，并确认本次讲述。' }, { status: 400, headers });
+    return Response.json({ error: 'Please consent to cloud processing and confirm your words first.' }, { status: 400, headers });
   }
   const last = body.entries[body.entries.length - 1];
   if (last.speaker === 'patient' && isStopSignal(last.text)) return Response.json({ message: COMFORT, action: 'pause' }, { headers });
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return Response.json({ error: '云端 AI 尚未连接。可以继续使用本地规则演示。', code: 'not_configured' }, { status: 503, headers });
+  if (!apiKey) return Response.json({ error: 'Cloud AI is not connected. Local guided replies are available.', code: 'not_configured' }, { status: 503, headers });
 
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -62,14 +62,14 @@ export async function POST(request: Request) {
       .filter((part: { type: string }) => part.type === 'output_text').map((part: { text: string }) => part.text).join('');
     const reply = JSON.parse(raw);
     if (data.status === 'incomplete' || typeof reply.message !== 'string' || !reply.message.trim()
-      || reply.message.length > 180 || !['continue', 'pause'].includes(reply.action)
+      || reply.message.length > 400 || !['continue', 'pause'].includes(reply.action)
       || (reply.message.match(/[?？]/g) || []).length > 1
-      || /你还记得吗|你记错|考考你|答对了|改善记忆|治疗/.test(reply.message)) throw new Error('Invalid reply');
+      || /do you remember|you (?:are|were) wrong|quiz|correct answer|improve (?:your )?memory|cure|treat(?:ment)?|你还记得吗|你记错|考考你|答对了|改善记忆|治疗/i.test(reply.message)) throw new Error('Invalid reply');
     // Never allow a model-requested pause to contain another question.
     if (reply.action === 'pause') return Response.json({ message: COMFORT, action: 'pause' }, { headers });
     return Response.json({ message: reply.message.trim(), action: 'continue' }, { headers });
   } catch {
-    return Response.json({ error: '暂时没有连上。刚才的话还在，我们可以稍后再试。' }, { status: 502, headers });
+    return Response.json({ error: 'We could not connect. Your words are safe. We can try again later.' }, { status: 502, headers });
   } finally {
     clearTimeout(timer);
     request.signal.removeEventListener('abort', abort);

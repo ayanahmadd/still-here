@@ -1,0 +1,93 @@
+/* Quiet by default: feedback follows deliberate exploration. */
+.cognitive-garden .screen-entrance .entrance-content { transform:none; text-align:center; }
+.cognitive-garden .entrance-landscape-motion,.cognitive-garden .garden-air span { animation:none; }
+.cognitive-garden .screen-entrance .magic-entry { position:relative; display:grid; place-items:center; width:132px; height:132px; min-width:80px; min-height:80px; margin:30px auto; padding:18px; overflow:visible; border:1px solid #ffffff80; border-radius:50%; background:#f7faed38; color:var(--garden-ink); box-shadow:0 0 26px #ffffff40; cursor:pointer; }
+.magic-entry svg { width:92px; height:92px; transition:transform 450ms ease; }
+.magic-entry-label { position:absolute; top:calc(100% + 14px); left:50%; transform:translate(-50%,6px); opacity:0; font:26px/1.3 var(--garden-serif); transition:opacity 350ms ease,transform 350ms ease; pointer-events:none; }
+.magic-entry:is(:hover,:focus-visible,[data-touched]) .magic-entry-label { opacity:1; transform:translate(-50%,0); }
+.cognitive-garden .screen-entrance .magic-entry:is(:hover,:focus-visible,[data-touched]):not(:disabled) { transform:none; background:#f7faed60; animation:quiet-touch-glow 3.5s ease-in-out infinite; }
+.magic-entry:is(:hover,:focus-visible,[data-touched]) svg { transform:scale(1.06); }
+.cognitive-garden .topic-bubbles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:min(900px,100%); gap:22px; margin:auto; }
+.cognitive-garden .topic-bubble { width:100%; min-width:80px; min-height:230px; gap:20px; padding:24px 12px; }
+.cognitive-garden .topic-bubble:hover:not(.topic-selected) { transform:none; }
+.topic-cue-icon { display:grid; place-items:center; width:100px; height:100px; border-radius:50%; color:var(--garden-green); background:radial-gradient(circle,#e8ecdecc,#e8ecde00 75%); transition:transform 350ms ease,box-shadow 350ms ease; }
+.topic-bubble[data-preview] .topic-cue-icon { transform:scale(1.1); animation:quiet-touch-glow 3.5s ease-in-out infinite; }
+.topic-voice-controls { display:flex; justify-content:center; align-items:center; gap:18px; margin:12px auto; max-width:620px; }
+.quiet-stop-voice,.quiet-companion .bubble-listen { min-width:80px; min-height:80px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; border:1px solid var(--garden-line); border-radius:28px; background:var(--garden-paper); color:var(--garden-ink); font-size:17px; }
+.topic-voice-controls p,.quiet-speech-notice { font-size:18px; line-height:1.6; color:var(--garden-secondary); }
+.quiet-speech-notice { max-width:620px; margin:12px auto; padding:0 20px; text-align:center; }
+.quiet-companion { padding:0; }
+.quiet-companion .bubble-topline { padding:12px 20px 0; margin:0; }
+.bubble-reveal { display:flex; align-items:center; justify-content:center; width:100%; min-width:80px; min-height:144px; padding:25px; border:0; border-radius:22px; background:transparent; color:var(--garden-ink); }
+.quiet-companion .bubble-message { display:block; margin:0; text-align:center; }
+.quiet-dots { display:flex; gap:12px; font:52px/1 var(--garden-serif); }
+.quiet-dots span { display:inline-block; animation:quiet-dot 1.8s ease-in-out infinite; }
+.quiet-dots span:nth-child(2) { animation-delay:180ms; }
+.quiet-dots span:nth-child(3) { animation-delay:360ms; }
+@keyframes quiet-dot { 0%,70%,100% { transform:translateY(0); opacity:.4; } 35% { transform:translateY(-5px); opacity:.85; } }
+@keyframes quiet-touch-glow { 0%,100% { box-shadow:0 0 16px #ffffff50,0 0 0 1px #d7ddca50; } 50% { box-shadow:0 0 34px #ffffffb0,0 0 0 1px #d7ddca80; } }
+@media (max-width:520px) {
+  .cognitive-garden .topic-bubbles { gap:8px; }
+  .cognitive-garden .topic-bubble { min-height:155px; padding:14px 4px; gap:12px; border-radius:46%; }
+  .cognitive-garden .topic-1 { margin-top:0; }
+  .topic-cue-icon { width:76px; height:80px; }
+  .topic-cue-icon svg { width:64px; height:64px; }
+  .cognitive-garden .topic-title { font-size:19px; }
+  .quiet-companion .bubble-message { font-size:25px; }
+}
+
+/* The garden itself holds the saved stories; there is no footer or gallery link. */
+.garden-canvas { position:absolute; inset:0; z-index:0; overflow:clip; touch-action:pan-y; cursor:grab; }
+.garden-canvas.is-panning { cursor:grabbing; }
+.garden-canvas:focus-visible { outline:3px solid var(--garden-green); outline-offset:-5px; }
+.garden-world { position:absolute; inset:0 auto 0 0; height:100%; will-change:transform; }
+.garden-world-landscape { z-index:-1; object-fit:cover; object-position:center bottom; pointer-events:none; user-select:none; }
+.garden-world-wash { position:absolute; inset:0; pointer-events:none; background:linear-gradient(to bottom,var(--garden-paper),#f9f7ef88 24%,#f9f7ef00 52%,#f9f7ef00 82%,var(--garden-paper)); }
+.garden-memory-plant { position:absolute; z-index:1; width:130px; height:195px; transform:translateX(-50%); padding:0; border:0; border-radius:45%; background:transparent; color:var(--garden-ink); }
+.garden-memory-plant > .garden-flower { height:100%; pointer-events:none; }
+.garden-memory-title { position:absolute; top:100%; left:50%; transform:translate(-50%,4px); min-width:100px; max-width:180px; padding:8px 12px; border-radius:18px; background:#fffdf4e8; font-size:16px; line-height:1.4; opacity:0; transition:opacity 300ms ease; pointer-events:none; }
+.garden-memory-plant:is(:hover,:focus-visible) .garden-memory-title { opacity:1; }
+.garden-introduction { position:relative; z-index:2; pointer-events:none; }
+.topic-content,.current-flower-place { z-index:2; }
+.topic-content { pointer-events:none; }
+.topic-content button,.topic-content a,.topic-voice-controls { pointer-events:auto; }
+.garden-settings-trigger { position:absolute; z-index:10; right:20px; top:14px; display:grid; place-items:center; width:80px; height:80px; border:0; border-radius:50%; background:transparent; color:var(--garden-secondary); }
+.garden-settings-trigger:hover { background:#e8ecde99; }
+.garden-header { padding-right:100px; }
+.garden-owner-stamp { font:italic 24px/1.3 var(--garden-serif); letter-spacing:0; }
+.garden-owner-stamp small { font-style:normal; }
+.entrance-owner-name { margin:0 0 14px; color:var(--garden-secondary); font:italic 28px/1.5 var(--garden-serif); font-weight:300; }
+.garden-name-prompt { position:relative; z-index:4; width:max-content; max-width:90%; margin:15px auto 0; display:flex; align-items:center; gap:12px; padding:0 15px; background:#fffdf4e8; border:1px solid var(--garden-line); border-radius:30px; }
+.garden-name-prompt button { min-height:80px; padding:10px; background:none; border:0; color:var(--garden-ink); font-size:20px; }
+.garden-name-prompt button + button { color:var(--garden-secondary); font-size:18px; }
+.garden-settings-drawer { top:0; bottom:0; right:0; left:auto; margin:0; height:100dvh; max-height:100dvh; width:min(580px,100%); border-radius:24px 0 0 24px; }
+.garden-settings-drawer .dialog-paper { min-height:100%; background:#fcfbf4ed; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+.garden-settings-drawer .dialog-heading { flex-wrap:wrap; }
+.garden-settings-drawer .dialog-heading h2 { flex-basis:calc(100% - 90px); }
+.garden-settings-drawer .dialog-rest { order:2; }
+.garden-settings-drawer .garden-icon-button { min-width:80px; min-height:80px; }
+.garden-voice-settings h3 { font:24px/1.4 var(--garden-serif); margin:24px 0 14px; }
+.garden-voice-settings > div { display:flex; gap:20px; align-items:center; justify-content:center; }
+.garden-voice-settings button { width:80px; min-height:80px; border:1px solid var(--garden-line); border-radius:26px; color:var(--garden-ink); background:var(--garden-sage); font-size:35px; }
+.garden-voice-settings output { min-width:75px; font-size:25px; text-align:center; }
+.garden-developer-options { padding:20px 0; font-size:18px; line-height:1.7; }
+.garden-developer-options summary { cursor:pointer; min-height:60px; padding:15px 0; }
+.garden-developer-options > label { display:flex; align-items:center; gap:20px; font-size:21px; }
+.garden-developer-options > label > span { flex:1; }
+.garden-exit { margin:25px auto 0; width:100%; min-height:80px; }
+.name-voice-button { min-width:80px; min-height:80px; }
+.name-voice-permission { padding:18px; background:var(--garden-sage); border-radius:20px; font-size:18px; line-height:1.7; margin-top:20px; }
+@media (max-width:760px) {
+ .garden-header { height:auto; min-height:105px; padding:16px 90px 16px 0; flex-wrap:wrap; }
+ .garden-header-actions { flex-basis:100%; }
+ .garden-owner-stamp { font-size:21px; }
+ .garden-settings-trigger { right:12px; top:10px; }
+ .garden-memory-plant { width:105px; height:160px; }
+ .garden-name-prompt { flex-wrap:wrap; justify-content:center; gap:0; }
+ .garden-name-prompt button { font-size:18px; }
+}
+
+.cognitive-garden .screen-entrance .entrance-content { position:absolute; top:50%; left:50%; width:min(800px,90%); padding:0; transform:translate(-50%,-50%); }
+.cognitive-garden .screen-entrance .magic-entry { margin:0 auto; }
+.entrance-identity { position:absolute; bottom:calc(100% + 28px); left:50%; width:min(800px,90vw); transform:translateX(-50%); pointer-events:none; }
+.entrance-identity h1 { margin:0; }

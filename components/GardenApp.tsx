@@ -5,14 +5,42 @@ import Image from 'next/image';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, Flower2, Heart, Leaf, LoaderCircle, Mic, Pause, PenLine, Play, Settings2, ShieldCheck, Sprout, Square, Users, Volume2, VolumeX, X } from 'lucide-react';
 import GardenFlower from './GardenFlower';
 import GardenDialog from './GardenDialog';
-import { COMFORT, GARDEN_KEY, GardenEntry, GardenMemory, GardenStore, MAX_EXPRESSION, OPENING, addFamily, addPatient, exampleFlowers, finishMemory, flowerNames, isStopSignal, localReply, newMemory, readGarden, writeGarden } from '../lib/garden';
+import GardenActivities from './GardenActivities';
+import MagicGardenEntry from './MagicGardenEntry';
+import GardenTopicCue from './GardenTopicCue';
+import GardenCompanionBubble from './GardenCompanionBubble';
+import GardenCanvas from './GardenCanvas';
+import GardenNameEditor from './GardenNameEditor';
+import { DEFAULT_GARDEN_NAME, NAME_PROMPT_KEY, gardenLabel, readGardenName, writeGardenName } from '../lib/garden-name';
+import { GardenContact, normalisePhone, readContact, writeContact } from '../lib/garden-contact';
+import { COMFORT, REASSURANCE, GARDEN_KEY, GardenEntry, GardenMemory, GardenStore, MAX_EXPRESSION, OPENING, addFamily, addPatient, finishMemory, flowerNames, isStopSignal, localReply, newMemory, readGarden, resetGarden, topics, writeGarden } from '../lib/garden';
 
 type VoiceResult = { results: { length: number; [index: number]: { isFinal: boolean; [index: number]: { transcript: string } } } };
 type SpeechInput = { continuous: boolean; interimResults: boolean; lang: string; onresult: ((event: VoiceResult) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start: () => void; stop: () => void; abort: () => void };
 type VoiceWindow = Window & { SpeechRecognition?: new () => SpeechInput; webkitSpeechRecognition?: new () => SpeechInput };
-type Modal = 'welcome' | 'text' | 'review' | 'finish' | 'pause' | 'collection' | 'story' | 'settings' | 'mic' | 'family-consent' | 'family-note' | null;
+type Modal = 'welcome' | 'text' | 'review' | 'finish' | 'pause' | 'collection' | 'story' | 'settings' | 'mic' | 'family-consent' | 'family-note' | 'contact' | 'name' | null;
 
 export default function GardenApp() {
+  const [screen, setScreen] = useState<'entrance' | 'topics' | 'garden'>('entrance');
+  const [entering, setEntering] = useState(false);
+  const [arriving, setArriving] = useState(false);
+  const [topicSet, setTopicSet] = useState(0);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [previewTopic, setPreviewTopic] = useState<string | null>(null);
+  const [ownerName, setOwnerName] = useState(DEFAULT_GARDEN_NAME);
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [voiceVolume, setVoiceVolume] = useState(0.9);
+  const [voiceRate, setVoiceRate] = useState(0.8);
+  const [speechNotice, setSpeechNotice] = useState('');
+  const [userInteraction, setUserInteraction] = useState(0);
+  const speechSequence = useRef(0);
+  const speechActive = useRef(false);
+  const [contact, setContact] = useState<GardenContact | null>(null);
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactError, setContactError] = useState('');
+  const contactReturn = useRef(false);
+  const transitions = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [garden, setGarden] = useState<GardenStore>({ version: 1, flowers: [], current: null });
   const gardenRef = useRef(garden);
   const [loaded, setLoaded] = useState(false);
@@ -39,7 +67,7 @@ export default function GardenApp() {
   const [aiAvailable, setAiAvailable] = useState(false);
   const [cloudAllowed, setCloudAllowed] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [autoRead, setAutoRead] = useState(false);
+  const [autoRead, setAutoRead] = useState(true);
   const [micAccepted, setMicAccepted] = useState(false);
   const [requestError, setRequestError] = useState(false);
   const [hasCorruptData, setHasCorruptData] = useState(false);
@@ -56,56 +84,98 @@ export default function GardenApp() {
   const waitingNotice = useRef(false);
 
   useEffect(() => {
+    const name = readGardenName(window.location.search); setOwnerName(name);
+    const invitation = new URLSearchParams(window.location.search);
+    if (invitation.has('name')) { invitation.delete('name'); window.history.replaceState(null, '', window.location.pathname + (invitation.size ? '?' + invitation.toString() : '')); }
     try {
       const saved = readGarden();
       gardenRef.current = saved; setGarden(saved);
-      if (saved.current) { paused.current = true; setBubble('这段讲述还在这里。想接着说时，我们再慢慢聊。'); }
+      setShowNamePrompt(name === DEFAULT_GARDEN_NAME && !saved.flowers.length && !saved.current && localStorage.getItem(NAME_PROMPT_KEY) !== 'true');
+      if (new URLSearchParams(window.location.search).get('garden') === '1') {
+        setScreen(saved.current ? 'garden' : 'topics');
+        window.history.replaceState(null, '', '/');
+      }
+      if (saved.current) { paused.current = true; setBubble('Your story is still here. We can continue whenever you feel ready.'); }
     } catch {
       setHasCorruptData(true);
-      setStorageError('暂时无法读取原来的花园。原始记录没有被覆盖；本次可以先体验，或在设置中导出原始记录。');
-      const fallback: GardenStore = { version: 1, flowers: exampleFlowers, current: null };
+      setStorageError('Your saved garden could not be opened. The original data is untouched. You can export it in Settings.');
+      const fallback: GardenStore = { version: 1, flowers: [], current: null };
       gardenRef.current = fallback; setGarden(fallback);
     }
     setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    setSpeechAvailable('speechSynthesis' in window);
+    setContact(readContact());
+    setSpeechAvailable('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined');
     setLoaded(true);
     const controller = new AbortController();
     fetch('/api/garden', { signal: controller.signal, cache: 'no-store' }).then(response => response.json()).then(data => setAiAvailable(data.available === true)).catch(() => {});
-    return () => { controller.abort(); request.current?.abort(); voiceEpoch.current++; recognition.current?.abort(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
+    return () => { speechSequence.current++; speechActive.current = false; transitions.current.forEach(clearTimeout); controller.abort(); request.current?.abort(); voiceEpoch.current++; recognition.current?.abort(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
   }, []);
 
+  useEffect(() => { if (screen !== 'entrance' && showNamePrompt) { try { localStorage.setItem(NAME_PROMPT_KEY, 'true'); } catch {} } }, [screen, showNamePrompt]);
+
   useEffect(() => {
-    if (!garden.current || garden.current.status !== 'growing' || thinking || recording || modal || waitingNotice.current) return;
-    const timer = setTimeout(() => { waitingNotice.current = true; setNotification('不用着急，我们可以安静地坐一会儿。'); }, 30000);
+    if (screen !== 'garden' || !garden.current || garden.current.status !== 'growing' || thinking || speaking || (modal && modal !== 'text') || waitingNotice.current) return;
+    const timer = setTimeout(() => { waitingNotice.current = true; pauseConversation(); }, 30000);
     return () => clearTimeout(timer);
-  }, [garden.current, thinking, recording, modal]);
+  }, [garden.current, thinking, speaking, recording, modal, screen, draft, transcript, userInteraction]);
+
+  function enterGarden() {
+    if (entering || arriving || !loaded) return;
+    stopAudio(); setSpeechNotice('');
+    setEntering(true);
+    transitions.current.push(setTimeout(() => {
+      setScreen('topics'); setEntering(false);
+      if (!reduceMotion) {
+        setArriving(true);
+        transitions.current.push(setTimeout(() => setArriving(false), 550));
+      }
+    }, reduceMotion ? 0 : 750));
+  }
 
   function commit(next: GardenStore) {
     gardenRef.current = next; setGarden(next);
     if (hasCorruptData) return;
-    if (!writeGarden(next)) setStorageError('刚才的讲述还在当前页面，但暂时无法保存。请先保持页面打开，可以在设置中导出一份副本。');
+    if (!writeGarden(next)) setStorageError('Your words are here, but could not be saved. Keep this page open and export a copy in Settings.');
     else setStorageError('');
   }
 
   function stopAudio() {
+    speechSequence.current++; speechActive.current = false;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    utterance.current = null;
     setSpeaking(false);
   }
 
   function readAloud(text: string) {
+    if (speechActive.current && utterance.current?.text === text) return;
     stopAudio();
-    if (!speechAvailable) return;
-    const voice = new SpeechSynthesisUtterance(text);
-    voice.lang = 'zh-CN'; voice.rate = 0.8;
-    voice.onend = () => setSpeaking(false); voice.onerror = () => setSpeaking(false);
-    utterance.current = voice; setSpeaking(true); window.speechSynthesis.speak(voice);
+    if (!speechAvailable) { setSpeechNotice('Voice is unavailable here. You can read the words instead.'); return; }
+    const token = speechSequence.current;
+    setSpeechNotice('');
+    try {
+      const voice = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const english = voices.find(item => item.localService && /^en\b/i.test(item.lang)) || voices.find(item => /^en\b/i.test(item.lang));
+      if (english) voice.voice = english;
+      voice.lang = 'en-US'; voice.rate = voiceRate; voice.pitch = 1; voice.volume = voiceVolume;
+      voice.onend = () => { if (token === speechSequence.current) { speechActive.current = false; setSpeaking(false); } };
+      voice.onerror = event => {
+        if (token !== speechSequence.current) return;
+        speechActive.current = false; setSpeaking(false);
+        if (event.error !== 'canceled' && event.error !== 'interrupted') setSpeechNotice(event.error === 'not-allowed' ? 'Tap to hear the words.' : 'Voice is unavailable right now. You can read the words instead.');
+      };
+      utterance.current = voice; speechActive.current = true; setSpeaking(true);
+      // Keep this call synchronous with hover, touchstart, focus, or click.
+      window.speechSynthesis.speak(voice);
+    } catch { speechActive.current = false; setSpeaking(false); setSpeechNotice('Voice is unavailable right now. You can read the words instead.'); }
   }
 
-  function stopWork() {
+  function stopWork(keepAudio = false) {
     epoch.current++; voiceEpoch.current++;
     request.current?.abort(); request.current = null;
     recognition.current?.abort(); recognition.current = null;
-    inFlight.current = false; setThinking(false); setRecording(false); stopAudio();
+    inFlight.current = false; setThinking(false); setRecording(false); if (!keepAudio) stopAudio();
+    setPreviewTopic(null);
     setFamilyGranted(false); setFamilyOpen(false); setRequestError(false);
   }
 
@@ -113,7 +183,7 @@ export default function GardenApp() {
     stopWork(); paused.current = true;
     const state = gardenRef.current;
     if (state.current) commit({ ...state, current: { ...state.current, status: 'paused' } });
-    setBubble(COMFORT); setModal('pause'); setNotification('花朵和已经说过的话都留在这里，没有变化。');
+    setBubble(REASSURANCE); setModal('pause'); setNotification('Your words and your flower are safe here.');
   }
 
   function resume() {
@@ -122,9 +192,9 @@ export default function GardenApp() {
     if (state.current) {
       commit({ ...state, current: { ...state.current, status: 'growing' } });
       const last = [...state.current.entries].reverse().find(entry => entry.speaker === 'companion');
-      setBubble(last?.text || OPENING);
+      setBubble(last && !/[\u3400-\u9fff]/.test(last.text) ? last.text : state.current.entries.some(entry => entry.speaker === 'patient') ? localReply({ ...state.current, entries: state.current.entries.filter(entry => entry.speaker !== 'companion') }) : state.current.opening || OPENING);
     } else setBubble(OPENING);
-    setModal(null); setNotification('我们慢慢来。麦克风没有自动开启。');
+    setModal(null); setNotification('Take your time. The microphone is off.');
   }
 
   function ensureSession(): GardenMemory {
@@ -139,7 +209,7 @@ export default function GardenApp() {
     if (!loaded || inFlight.current || recording) return;
     pendingIntent.current = intent;
     if (paused.current || gardenRef.current.current?.status === 'paused') { setModal('pause'); return; }
-    if (!gardenRef.current.current) { setModal('welcome'); return; }
+    if (!gardenRef.current.current) { setScreen('topics'); setFeatured(null); return; }
     if (intent === 'text') { stopAudio(); setModal('text'); }
     else requestMic();
   }
@@ -150,10 +220,27 @@ export default function GardenApp() {
     else requestMic();
   }
 
+  function chooseTopic(question: string, id: string) {
+    if (selectedTopic) return;
+    setSelectedTopic(id);
+    setShowNamePrompt(false);
+    stopWork(true); setNotification(''); setDraft('');
+    if (autoRead) readAloud(question);
+    transitions.current.push(setTimeout(() => {
+    const state = gardenRef.current;
+    setScreen('garden'); setFeatured(null); setJustBloomed(false);
+    const previous = state.current?.entries.some(entry => entry.speaker === 'patient') ? finishMemory(state.current) : null;
+    paused.current = false; waitingNotice.current = false;
+    commit({ ...state, flowers: previous ? [previous, ...state.flowers.filter(flower => flower.id !== previous.id)] : state.flowers, current: newMemory(question) });
+    setBubble(`${REASSURANCE} ${question}`); started.current = Date.now();
+    setSelectedTopic(null);
+    }, reduceMotion ? 0 : 650));
+  }
+
   function requestMic() {
     stopAudio();
     const browser = window as VoiceWindow;
-    if (!browser.SpeechRecognition && !browser.webkitSpeechRecognition) { setNotification('这个浏览器暂不支持语音识别。我们也可以用文字慢慢说。'); setModal('text'); return; }
+    if (!browser.SpeechRecognition && !browser.webkitSpeechRecognition) { setNotification('Voice input is unavailable in this browser. You can write instead.'); setModal('text'); return; }
     if (!micAccepted) { setModal('mic'); return; }
     startMic();
   }
@@ -164,7 +251,7 @@ export default function GardenApp() {
     stopAudio(); setModal(null); ensureSession();
     const token = ++voiceEpoch.current;
     const speech = new Constructor(); recognition.current = speech;
-    speech.lang = 'zh-CN'; speech.continuous = true; speech.interimResults = true;
+    speech.lang = 'en-US'; speech.continuous = true; speech.interimResults = true;
     transcriptRef.current = ''; setTranscript(''); setNotification(''); setRecording(true);
     speech.onresult = event => {
       if (token !== voiceEpoch.current || paused.current) return;
@@ -176,21 +263,21 @@ export default function GardenApp() {
     speech.onerror = event => {
       if (token !== voiceEpoch.current) return;
       voiceEpoch.current++; setRecording(false); recognition.current = null;
-      setNotification(event.error === 'not-allowed' ? '麦克风没有开启。可以用文字说，也可以先休息。' : '刚才没有听清。可以用文字说，或稍后再试。');
+      setNotification(event.error === 'not-allowed' ? 'The microphone is off. You can write or take a rest.' : 'That was not clear. You can write or try again later.');
       setDraft(transcriptRef.current); setModal('text');
     };
     speech.onend = () => {
       if (token !== voiceEpoch.current || paused.current) return;
       setRecording(false); recognition.current = null;
       if (transcriptRef.current.trim()) setModal('review');
-      else setNotification('没有关系，想说的时候再点一下就好。');
+      else setNotification('That is okay. Tap again whenever you feel ready.');
     };
-    try { speech.start(); } catch { voiceEpoch.current++; setRecording(false); recognition.current = null; setNotification('语音暂时没有开启。可以先用文字说。'); setModal('text'); }
+    try { speech.start(); } catch { voiceEpoch.current++; setRecording(false); recognition.current = null; setNotification('Voice input could not start. You can write instead.'); setModal('text'); }
   }
 
   function cancelRecording() {
     voiceEpoch.current++; recognition.current?.abort(); recognition.current = null;
-    setRecording(false); transcriptRef.current = ''; setTranscript(''); setNotification('这次录音没有留下。花园还在这里。');
+    setRecording(false); transcriptRef.current = ''; setTranscript(''); setNotification('This recording was discarded. Your garden is still here.');
   }
 
   async function replyTo(memory: GardenMemory) {
@@ -211,7 +298,7 @@ export default function GardenApp() {
           }
           const response = await fetch('/api/garden', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal, body: JSON.stringify({ entries: recent, cloudConsent: true }) });
           const result = await response.json();
-          if (!response.ok) throw new Error(result.error || '暂时没有连上。');
+          if (!response.ok) throw new Error(result.error || 'We could not connect.');
           message = result.message; action = result.action;
         } finally { clearTimeout(timer); }
       }
@@ -222,11 +309,11 @@ export default function GardenApp() {
       const entry: GardenEntry = { id: crypto.randomUUID(), speaker: 'companion', text: message, createdAt: new Date().toISOString(), mode: cloudAllowed ? 'ai' : 'local' };
       commit({ ...state, current: { ...state.current, entries: [...state.current.entries, entry] } });
       setBubble(message);
-      if (autoRead) readAloud(message);
+      // A new reply stays quiet until the user explores its bubble.
       if (started.current && Date.now() - started.current > 300000) setTimeToRest(true);
     } catch {
       if (token !== epoch.current || paused.current) return;
-      setBubble('暂时没有连上。刚才的话还在，我们可以先坐一会儿。'); setRequestError(true);
+      setBubble('We could not connect. Your words are safe. We can sit for a while.'); setRequestError(true);
     } finally {
       if (token === epoch.current) { setThinking(false); inFlight.current = false; request.current = null; }
     }
@@ -235,7 +322,9 @@ export default function GardenApp() {
   function submitPatient(text: string) {
     if (!text.trim() || text.trim().length > MAX_EXPRESSION || inFlight.current || paused.current) return;
     if (isStopSignal(text)) { pauseConversation(); return; }
-    const memory = addPatient(ensureSession(), text);
+    const previous = ensureSession();
+    const memory = addPatient(previous, text);
+    if (previous.stage < 7 && memory.stage === 7) setJustBloomed(true);
     commit({ ...gardenRef.current, current: memory });
     setDraft(''); setTranscript(''); transcriptRef.current = ''; setModal(null); setNotification(''); waitingNotice.current = false;
     void replyTo(memory);
@@ -252,10 +341,10 @@ export default function GardenApp() {
     const flower = finishMemory({ ...state.current, title: title.trim().slice(0, 100) || state.current.title });
     if (!flower) return;
     stopWork(); paused.current = false;
-    commit({ ...state, flowers: [flower, ...state.flowers], current: null });
-    setFeatured(flower); setJustBloomed(true); setModal(null); setTimeToRest(false);
-    setBubble('谢谢你和我们分享。这段时光，已经在花园里了。');
-    setNotification('花朵已绽放。想看这段讲述时，随时可以回来。');
+    commit({ ...state, flowers: [flower, ...state.flowers.filter(saved => saved.id !== flower.id)], current: null });
+    setFeatured(flower); setJustBloomed(false); setModal(null); setTimeToRest(false);
+    setBubble('Thank you for sharing. This little moment now has a place in your garden.');
+    setNotification(flower.stage === 7 ? 'Your flower is here, with the words you shared.' : 'Saved just as it is. You can return and continue whenever you like.');
   }
 
   function saveFamily(event: React.FormEvent) {
@@ -271,7 +360,60 @@ export default function GardenApp() {
   function closeModal() {
     stopAudio();
     if (modal === 'family-note' || modal === 'family-consent') setFamilyGranted(false);
+    if (modal === 'contact' && contactReturn.current) { setModal('pause'); return; }
     setModal(null);
+  }
+
+  function continueStory(memory: GardenMemory) {
+    if (memory.stage === 7) return;
+    stopWork();
+    const state = gardenRef.current;
+    const previous = state.current?.id !== memory.id && state.current?.entries.some(entry => entry.speaker === 'patient') ? finishMemory(state.current) : null;
+    const flowers = previous ? [previous, ...state.flowers.filter(flower => flower.id !== previous.id)] : state.flowers;
+    commit({ ...state, flowers: flowers.filter(flower => flower.id !== memory.id), current: { ...memory, status: 'paused' } });
+    setFeatured(null); setScreen('garden'); paused.current = true; setModal('pause');
+  }
+
+  function openContact(returnToPause = false) {
+    contactReturn.current = returnToPause;
+    setContactName(contact?.name || ''); setContactPhone(contact?.phone || ''); setContactError(''); setModal('contact');
+  }
+
+  function saveContact(event: React.FormEvent) {
+    event.preventDefault();
+    const phone = normalisePhone(contactPhone);
+    if (!phone || !contactName.trim()) { setContactError('Please add a name and a phone number with 7–15 digits. Include the country code when needed.'); return; }
+    const next = { name: contactName.trim(), phone };
+    if (!writeContact(next)) { setContactError('This contact could not be saved on this device. Please try again.'); return; }
+    setContact(next); setModal(contactReturn.current ? 'pause' : 'settings');
+  }
+
+  function saveOwnerName(value: string) {
+    const next = writeGardenName(value);
+    if (!next) return false;
+    setOwnerName(next); setShowNamePrompt(false); return true;
+  }
+
+  function leaveGarden() {
+    stopWork(); transitions.current.forEach(clearTimeout);
+    const state = gardenRef.current;
+    const memory = state.current ? finishMemory(state.current) : null;
+    commit({ ...state, current: null, flowers: memory ? [memory, ...state.flowers.filter(flower => flower.id !== memory.id)] : state.flowers });
+    setFeatured(null); setEntering(false); setArriving(false); setScreen('entrance'); setModal(null); paused.current = false; setSpeechNotice('');
+  }
+
+  function clearDemoGarden() {
+    stopWork(); transitions.current.forEach(clearTimeout);
+    try {
+      const fresh = resetGarden(); gardenRef.current = fresh; setGarden(fresh);
+      setOwnerName(DEFAULT_GARDEN_NAME); setShowNamePrompt(true); setContact(null);
+      setFeatured(null); setViewing(null); setDraft(''); setTranscript(''); transcriptRef.current = '';
+      setHasCorruptData(false); setStorageError(''); setNotification(''); setSpeechNotice('');
+      setTopicSet(0); setSelectedTopic(null); setEntering(false); setArriving(false); setModal(null); setScreen('entrance');
+      setBubble(REASSURANCE); setVoiceVolume(.9); setVoiceRate(.8); paused.current = false;
+      setCloudAllowed(false); setAutoRead(true); setMicAccepted(false);
+      window.history.replaceState(null, '', '/');
+    } catch { setStorageError('This garden could not be reset. Please keep this page open and try again.'); }
   }
 
   function showStory(memory: GardenMemory) { stopAudio(); setViewing(memory); setModal('story'); }
@@ -281,77 +423,97 @@ export default function GardenApp() {
   }
 
   const current = garden.current;
-  const activeFlower = current || featured;
+  const activeFlower = current;
   const canFinish = !!current?.entries.some(entry => entry.speaker === 'patient');
-  const hints = ['先听一听，再等一等。不用急着帮忙补完句子。', '可以轻轻邀请：“你想再说说当时的声音吗？”只选一个方向。', '熟悉的照片或物品可以放在身边。由他／她决定要不要聊。'];
+  const hints = ['Listen, then leave a little space. Let them finish in their own time.', 'Try one gentle invitation: “What sounds come to mind?” Then give them time.', 'A familiar photo or object can sit nearby. Let them choose whether to talk about it.'];
+  const lastCompanion = [...(current?.entries || [])].reverse().find(entry => entry.speaker === 'companion');
   const lastPatient = [...(current?.entries || [])].reverse().find(entry => entry.speaker === 'patient');
 
-  return <div className={'memory-garden-app' + (reduceMotion ? ' quiet-motion' : '')}>
-    <a className="skip-link" href="#garden-main">跳到花园</a>
-    <header className="garden-header">
-      <a className="garden-brand" href="/" aria-label="Memory Garden 记忆花园"><span className="brand-sprout"><Sprout size={29} strokeWidth={1.3} /></span><span>Memory Garden<small>记 忆 花 园</small></span></a>
-      <div className="garden-header-actions"><button className={'soft-button companion-toggle' + (familyOpen ? ' selected' : '')} aria-expanded={familyOpen} onClick={() => { stopAudio(); setFamilyOpen(value => !value); }} disabled={recording || thinking}><Users size={19} /><span>陪伴提示</span></button><button className="rest-button" onClick={pauseConversation}><Pause size={18} /><span>休息一下</span></button></div>
-    </header>
+  return <div className={'memory-garden-app cognitive-garden' + (reduceMotion ? ' quiet-motion' : '')}>
+    {screen !== 'entrance' && <a className="skip-link" href="#garden-main">Skip to garden</a>}
+    {screen !== 'entrance' && <header className="garden-header">
+      <a className="garden-brand" href="/" aria-label="Memory Garden"><span className="brand-sprout"><Sprout size={29} strokeWidth={1.3} /></span><span className="garden-owner-stamp">{gardenLabel(ownerName)}<small>Memory Garden</small></span></a>
+      {screen === 'garden' && <div className="garden-header-actions"><button className={'soft-button companion-toggle' + (familyOpen ? ' selected' : '')} aria-label="Family companion tips" aria-expanded={familyOpen} onClick={() => { stopAudio(); setFamilyOpen(value => !value); }} disabled={recording || thinking}><Users size={19} /><span>For family</span></button><button className="rest-button" onClick={pauseConversation}><Pause size={18} /><span>Take a rest</span></button></div>}
+    </header>}
 
+    <button className="garden-settings-trigger" aria-label="Settings" onClick={() => { stopAudio(); setModal('settings'); }}><Settings2 size={25} strokeWidth={1.3} aria-hidden="true" /></button>
     <main id="garden-main">
-      <section className={'garden-scene' + (featured && !current ? ' scene-has-bloom' : '')} aria-label="回忆花园">
-        <Image className="garden-landscape" src="/garden/garden-background.png" alt="" aria-hidden="true" fill priority sizes="100vw" quality={85} />
+      <section className={'garden-scene screen-' + screen + (featured && !current ? ' scene-has-bloom' : '') + (entering ? ' scene-entering' : '')} data-growth={activeFlower?.stage ? undefined : 'empty'} aria-label="Memory garden">
+        {screen === 'entrance' ? <div className="entrance-landscape-frame" aria-hidden="true"><div className="entrance-landscape-motion">
+          <Image className="garden-landscape" src="/garden/empty-garden-background.png" alt="" fill priority sizes="100vw" quality={85} />
+          <span className="garden-gate-glow" />
+        </div></div> : <GardenCanvas flowers={garden.flowers} onOpen={showStory} />}
         <div className="scene-wash" />
-        <div className="garden-introduction"><p><span /> A GARDEN OF LITTLE MOMENTS</p><h1>慢慢说，花会慢慢开。</h1></div>
-        <div className="companion-bubble" aria-busy={thinking}>
-          <div className="bubble-topline"><span><span className="companion-leaf"><Leaf size={15} /></span>{thinking ? '陪你慢慢整理' : '花园里的陪伴者'}</span>{speechAvailable && <button className="bubble-listen" aria-label={speaking ? '停止朗读' : '听一听这个问题'} onClick={() => speaking ? stopAudio() : readAloud(bubble)} disabled={recording || thinking}>{speaking ? <Square size={15} /> : <Volume2 size={17} />}<span>{speaking ? '停止' : '听一听'}</span></button>}</div>
-          <p className="bubble-message" aria-live="polite">{thinking ? <span className="thinking-copy"><LoaderCircle size={22} />我在听，慢慢来。</span> : bubble}</p>
-          <span className="bubble-footnote">{current?.status === 'paused' ? '不用完成什么，花园会等你。' : '想到一点，就说一点。不用急。'}</span>
-        </div>
+        {screen === 'entrance' && <div className="garden-path-hover" aria-hidden="true" />}
+        {screen !== 'entrance' && <div className="garden-air" aria-hidden="true"><span /><span /><span /></div>}
+        {screen === 'entrance' && <MagicGardenEntry disabled={!loaded || entering} entering={entering} label={gardenLabel(ownerName)} onEnter={enterGarden} />}
+        {screen !== 'entrance' && showNamePrompt && <div className="garden-name-prompt"><button aria-label="Name your garden" onClick={() => { if (autoRead) readAloud('Whose garden is this?'); setModal('name'); }}>Whose garden is this?</button><button aria-label="Name this garden later" onClick={() => setShowNamePrompt(false)}>Later</button></div>}
+        {screen === 'topics' && <div className="topic-content">
+          <button className="topic-back garden-text-button" disabled={!!selectedTopic} onClick={() => { stopAudio(); setPreviewTopic(null); setScreen('entrance'); }}><ArrowLeft size={17} />Back</button>
+          <p className="garden-eyebrow">A LITTLE THOUGHT TO BEGIN</p>
+          <h1>A little place to begin.</h1>
+          <p className="topic-description">Choose what feels close.</p>
+          <div key={topicSet} className={'topic-bubbles' + (selectedTopic ? ' is-choosing' : '')}>{topics.slice(topicSet * 3, topicSet * 3 + 3).map((topic, index) => <GardenTopicCue key={topic.id} id={topic.id} index={index} selected={selectedTopic === topic.id} disabled={!!selectedTopic} previewing={previewTopic === topic.id}
+            onPreview={() => { setPreviewTopic(topic.id); if (autoRead) readAloud(topic.question); }}
+            onLeave={() => setPreviewTopic(value => value === topic.id ? null : value)}
+            onChoose={() => chooseTopic(topic.question, topic.id)} />)}</div>
+          {(speaking || speechNotice) && <div className="topic-voice-controls">{speaking && <button className="quiet-stop-voice" aria-label="Stop voice" onClick={stopAudio}><Square size={24} aria-hidden="true" /><span>Stop</span></button>}{speechNotice && <p role="status">{speechNotice}</p>}</div>}
+          {current?.entries.some(entry => entry.speaker === 'patient') && <button className="resume-story garden-secondary" onClick={() => { setScreen('garden'); setModal('pause'); }}><Play size={18} />Your story is waiting · Continue</button>}
+          <button className="garden-text-button topic-refresh" disabled={!!selectedTopic} onClick={() => { stopAudio(); setPreviewTopic(null); setSpeechNotice(''); setTopicSet(value => (value + 1) % (topics.length / 3)); }}>Explore three other ideas<ArrowRight size={17} /></button>
+          <p className="topic-note">Choose only if something feels close to you.</p>
+        </div>}
+        {screen === 'garden' && <>
+        <div className="garden-introduction"><p><span /> A GARDEN OF LITTLE MOMENTS</p><h1>Little by little, a memory blooms.</h1></div>
+        <GardenCompanionBubble message={bubble} messageKey={lastCompanion?.id || current?.id || featured?.id || 'opening'} thinking={thinking} blocked={thinking || recording || !!modal} speaking={speaking} reduceMotion={reduceMotion} onSpeak={text => { setUserInteraction(value => value + 1); if (autoRead) readAloud(text); }} onStop={stopAudio} />
+        {speechNotice && <p className="quiet-speech-notice" role="status">{speechNotice}</p>}
 
-        <div className={'current-flower-place' + (justBloomed ? ' freshly-bloomed' : '')} key={activeFlower?.id || 'empty'}>
-          <GardenFlower kind={activeFlower?.kind || 'daisy'} stage={activeFlower?.stage || 0} familyBud={activeFlower?.familyBud} />
-          <p className="current-flower-label">{current ? current.stage > 0 ? '你说过的话，正在这里生长' : '从一句话，开始一段时光' : featured ? '这一朵，留下了你的讲述' : '留一小块地方，给你的故事'}</p>
-          {featured && !current && <button className="new-flower-story" onClick={() => showStory(featured)}>看看这朵花的故事<ChevronRight size={16} /></button>}
-        </div>
+        {activeFlower && activeFlower.stage > 0 && <div className={'current-flower-place' + (justBloomed ? ' freshly-bloomed' : '')} key={activeFlower?.id || 'empty'}>
+          <GardenFlower kind={activeFlower?.kind || 'daisy'} stage={activeFlower?.stage || 0} familyBud={activeFlower?.familyBud} sensoryDetails={activeFlower?.sensoryDetails} />
+          <p className="current-flower-label">{current ? current.stage > 0 ? 'Your words are gently growing here' : 'A little moment begins with your words' : featured ? 'A little flower for your story' : 'A quiet place for your story'}</p>
+          {featured && !current && <button className="new-flower-story" onClick={() => showStory(featured)}>Visit this flower’s story<ChevronRight size={16} /></button>}
+        </div>}
 
-        <div className="saved-flower-plots" aria-label="已留下的花朵">
-          {garden.flowers.filter(flower => flower.id !== featured?.id).slice(0, 3).map((flower, index) => <button key={flower.id} className={`saved-flower saved-flower-${index}`} onClick={() => showStory(flower)} aria-label={`${flower.example ? '示例：' : ''}${flower.title}，查看故事`}><GardenFlower kind={flower.kind} stage={5} /><span className="flower-nameplate">{flower.title}<ChevronRight size={13} /></span>{flower.example && <small>示例回忆</small>}</button>)}
-        </div>
-        <div className="scene-caption"><span />在这里，每一段讲述都值得被温柔留下<span /></div>
 
-        {familyOpen && <aside className="family-panel" aria-labelledby="family-panel-title"><div className="family-panel-top"><span><Users size={18} />一起陪伴</span><button className="garden-icon-button" aria-label="收起陪伴提示" onClick={() => setFamilyOpen(false)}><X size={20} /></button></div><h2 id="family-panel-title">先陪着，再慢慢说。</h2><div className="family-hint"><Leaf size={20} /><p>{hints[hint]}</p></div><button className="hint-next" onClick={() => setHint(value => (value + 1) % hints.length)}>换一张陪伴提示<ArrowRight size={15} /></button><p className="family-guidance">一次只聊一个方向。不纠正，也不替他／她回答。</p><button className="garden-secondary" disabled={!canFinish || paused.current || thinking} onClick={() => { setFamilyGranted(false); setModal('family-consent'); }}>我想补充一句</button>{!canFinish && <small>先听他／她说一点，再一起补充。</small>}</aside>}
+        </>}
+        {screen === 'garden' && familyOpen && <aside className="family-panel" aria-labelledby="family-panel-title"><div className="family-panel-top"><span><Users size={18} />Being here together</span><button className="garden-icon-button" aria-label="Close companion tips" onClick={() => setFamilyOpen(false)}><X size={20} /></button></div><h2 id="family-panel-title">Be here. Let the words follow.</h2><div className="family-hint"><Leaf size={20} /><p>{hints[hint]}</p></div><button className="hint-next" onClick={() => setHint(value => (value + 1) % hints.length)}>Another gentle idea<ArrowRight size={15} /></button><p className="family-guidance">One invitation at a time. Let their own words lead.</p><button className="garden-secondary" disabled={!canFinish || paused.current || thinking} onClick={() => { setFamilyGranted(false); setModal('family-consent'); }}>Share a little detail</button>{!canFinish && <small>Let them share first, then ask to add a detail.</small>}</aside>}
       </section>
 
-      <section className="garden-input-area" aria-label="分享一段回忆">
-        {recording ? <div className="recording-area"><div className="recording-status"><span className="recording-dot" /><span>正在听你说，停顿也没关系。</span></div><p className="live-transcript" aria-live="polite">{transcript || '想到什么，都可以慢慢说。'}</p><div className="input-actions"><button className="garden-primary" onClick={() => recognition.current?.stop()}><Square size={18} />我说好了</button><button className="garden-text-button" onClick={cancelRecording}>取消这次录音</button></div></div>
-          : <><div className="input-actions"><button className="garden-primary voice-button" aria-label={current?.status === 'paused' ? '继续这段讲述' : '开始说话'} onClick={() => current?.status === 'paused' ? setModal('pause') : begin('voice')} disabled={!loaded || thinking}>{current?.status === 'paused' ? <Play size={22} /> : <Mic size={23} strokeWidth={1.6} />}<span>{current?.status === 'paused' ? '继续这段讲述' : featured && !current ? '再聊一段时光' : '点一下，说说看'}</span></button><button className="write-button" onClick={() => begin('text')} disabled={!loaded || thinking}><PenLine size={20} /><span>用文字说</span></button>{canFinish && <button className="keep-memory-button" onClick={openFinish} disabled={thinking}><Flower2 size={20} />把这段留下</button>}</div><p className="input-reassurance">{thinking ? '你可以随时点「休息一下」。' : current?.status === 'paused' ? '已经说过的话会留在这里。' : '点下按钮后才会开启麦克风，随时可以停。'}</p></>}
-        {lastPatient && !recording && <p className="last-shared"><span>你刚才说</span>“{lastPatient.text}”</p>}
-        {requestError && <div className="request-recovery"><button className="garden-text-button" onClick={() => current && void replyTo(current)}>再连接一次</button><button className="garden-text-button" onClick={() => { setCloudAllowed(false); setRequestError(false); if (current) setBubble(localReply(current)); }}>继续本地规则演示</button></div>}
-        <p className="garden-notification" role="status">{notification || (timeToRest ? '已经一起坐了一会儿，随时可以先把这段留下。' : '\u00a0')}</p>
+      {screen === 'garden' && <section className="garden-input-area" aria-label="Share a little moment">
+        {recording ? <div className="recording-area"><div className="recording-status"><span className="recording-dot" /><span>Listening. Pauses are welcome.</span></div><p className="live-transcript" aria-live="polite">{transcript || 'Share whatever comes to mind, at your own pace.'}</p><div className="input-actions"><button className="garden-primary" onClick={() => recognition.current?.stop()}><Square size={18} />I am finished</button><button className="garden-text-button" onClick={cancelRecording}>Discard recording</button></div></div>
+          : <><div className="input-actions"><button className="garden-primary voice-button" aria-label={current?.status === 'paused' ? 'Continue your story' : 'Start speaking'} onClick={() => current?.status === 'paused' ? setModal('pause') : begin('voice')} disabled={!loaded || thinking}>{current?.status === 'paused' ? <Play size={22} /> : <Mic size={23} strokeWidth={1.6} />}<span>{current?.status === 'paused' ? 'Continue your story' : featured && !current ? 'Share another moment' : 'Tap to speak'}</span></button><button className="write-button" onClick={() => begin('text')} disabled={!loaded || thinking}><PenLine size={20} /><span>Write instead</span></button>{canFinish && <button className="keep-memory-button" onClick={openFinish} disabled={thinking}><Flower2 size={20} />Keep this moment</button>}</div><p className="input-reassurance">{thinking ? 'You can choose “Take a rest” at any time.' : current?.status === 'paused' ? 'Your words will stay here.' : 'The microphone starts only when you choose. Stop whenever you like.'}</p></>}
+        {lastPatient && !recording && <p className="last-shared"><span>You shared</span>“{lastPatient.text}”</p>}
+        {requestError && <div className="request-recovery"><button className="garden-text-button" onClick={() => current && void replyTo(current)}>Try connecting again</button><button className="garden-text-button" onClick={() => { setCloudAllowed(false); setRequestError(false); if (current) setBubble(localReply(current)); }}>Continue with local replies</button></div>}
+        <p className="garden-notification" role="status">{notification || (timeToRest ? 'We have spent a little time together. You can keep this moment whenever you like.' : '\u00a0')}</p>
         {storageError && <p className="garden-storage-error" role="alert">{storageError}</p>}
-      </section>
+      </section>}
 
-      <section className="garden-keepsakes"><div><span className="little-leaf"><Leaf size={16} /></span><p>有些时光，<em>一直在这里。</em></p></div><button className="garden-text-button" onClick={() => { stopAudio(); setModal('collection'); }}><BookOpen size={18} />看看留下的花<ArrowRight size={17} /></button></section>
+      {(entering || arriving) && <div className={'entry-transition-light' + (arriving ? ' is-arriving' : '')} aria-hidden="true" />}
     </main>
 
-    <footer className="garden-footer"><span><ShieldCheck size={14} />讲述保存在这台设备</span><button onClick={() => { stopAudio(); setModal('settings'); }}><Settings2 size={15} />{cloudAllowed ? '云端 AI 陪伴' : '本地演示 · 规则回应'}<span className="footer-settings">与设置</span></button><p>不必想起全部。一起坐一会儿，也很好。</p></footer>
+    {screen !== 'entrance' && <GardenActivities onOpen={() => { transitions.current.forEach(clearTimeout); setSelectedTopic(null); stopWork(); const state = gardenRef.current; if (state.current) { paused.current = true; commit({ ...state, current: { ...state.current, status: 'paused' } }); setBubble(COMFORT); } }} />}
 
-    {modal === 'welcome' && <GardenDialog onPause={pauseConversation} title="在花园里，慢慢说就好。" onClose={closeModal}><div className="dialog-symbol"><Sprout size={38} strokeWidth={1.2} /></div><p className="dialog-lead">我们可以聊一点生活里的小事。你想说多少，就说多少。</p><ul className="welcome-notes"><li><Pause size={18} />随时可以休息，不用完成什么。</li><li><ShieldCheck size={18} />讲述保存在这台设备。</li><li><Leaf size={18} />{cloudAllowed ? '你已同意把这段会话的文字交给 OpenAI 回应。' : '当前使用本地规则演示，不会发送给 AI。'}</li></ul><div className="dialog-actions"><button className="garden-primary" onClick={acceptWelcome}>我愿意聊一会儿<ArrowRight size={19} /></button><button className="garden-text-button" onClick={closeModal}>先看看花</button></div></GardenDialog>}
+    {modal === 'welcome' && <GardenDialog onPause={pauseConversation} title="There is time for your story." onClose={closeModal}><div className="dialog-symbol"><Sprout size={38} strokeWidth={1.2} /></div><p className="dialog-lead">We can share a little moment from life. As much or as little as you like.</p><ul className="welcome-notes"><li><Pause size={18} />Rest whenever you like. There is nothing to complete.</li><li><ShieldCheck size={18} />Your stories stay on this device.</li><li><Leaf size={18} />{cloudAllowed ? 'You have chosen to share this conversation’s text with OpenAI for replies.' : 'Local demo replies are on. Nothing is sent to AI.'}</li></ul><div className="dialog-actions"><button className="garden-primary" onClick={acceptWelcome}>I would like to share<ArrowRight size={19} /></button><button className="garden-text-button" onClick={closeModal}>Just look around</button></div></GardenDialog>}
 
-    {modal === 'text' && <GardenDialog onPause={pauseConversation} title="把想说的话，慢慢写下来。" onClose={closeModal}><p className="dialog-context">{bubble}</p><form onSubmit={event => { event.preventDefault(); submitPatient(draft); }}><label className="sr-only" htmlFor="patient-expression">你的讲述</label><textarea id="patient-expression" autoFocus rows={5} maxLength={MAX_EXPRESSION} value={draft} onChange={event => { setDraft(event.target.value); if (isStopSignal(event.target.value)) pauseConversation(); }} placeholder="一句话、一点印象，都可以。" /><div className="dialog-actions"><button className="garden-primary" type="submit" disabled={!draft.trim()}>就这样留下<Check size={19} /></button><button className="garden-text-button" type="button" onClick={pauseConversation}>先休息一下</button></div></form></GardenDialog>}
+    {modal === 'text' && <GardenDialog onPause={pauseConversation} title="Write a little, at your own pace." onClose={closeModal}><p className="dialog-context">{bubble}</p><form onSubmit={event => { event.preventDefault(); submitPatient(draft); }}><label className="sr-only" htmlFor="patient-expression">Your story</label><textarea id="patient-expression" autoFocus rows={5} maxLength={MAX_EXPRESSION} value={draft} onChange={event => { setDraft(event.target.value); if (isStopSignal(event.target.value)) pauseConversation(); }} placeholder="A sentence or a little impression is enough." /><div className="dialog-actions"><button className="garden-primary" type="submit" disabled={!draft.trim()}>Share these words<Check size={19} /></button><button className="garden-text-button" type="button" onClick={pauseConversation}>Rest for now</button></div></form></GardenDialog>}
 
-    {modal === 'mic' && <GardenDialog onPause={pauseConversation} title="开始前，先告诉你。" onClose={closeModal}><div className="dialog-symbol"><Mic size={34} /></div><p className="dialog-lead">语音由浏览器识别，可能需要联网处理声音。我们不会保存原始录音。</p><p className="dialog-note">你说完后，可以先确认文字，再决定留下。也可以一直使用文字。</p><div className="dialog-actions"><button className="garden-primary" onClick={() => { setMicAccepted(true); startMic(); }}>同意，开始说话<Mic size={19} /></button><button className="garden-text-button" onClick={() => setModal('text')}>改用文字</button></div></GardenDialog>}
+    {modal === 'mic' && <GardenDialog onPause={pauseConversation} title="Before we listen." onClose={closeModal}><div className="dialog-symbol"><Mic size={34} /></div><p className="dialog-lead">Your browser turns speech into text and may process audio online. This app does not save recordings.</p><p className="dialog-note">You can check and edit the words before sharing. Writing is always an option.</p><div className="dialog-actions"><button className="garden-primary" onClick={() => { setMicAccepted(true); startMic(); }}>Allow and start speaking<Mic size={19} /></button><button className="garden-text-button" onClick={() => setModal('text')}>Write instead</button></div></GardenDialog>}
 
-    {modal === 'review' && <GardenDialog onPause={pauseConversation} title="我听到的是……" onClose={closeModal}><p className="dialog-note">可以看看、改一改，或重新说。不用担心。</p><label className="sr-only" htmlFor="voice-review">确认语音文字</label><textarea id="voice-review" rows={4} maxLength={MAX_EXPRESSION} value={transcript} onChange={event => setTranscript(event.target.value)} /><div className="dialog-actions"><button className="garden-primary" disabled={!transcript.trim()} onClick={() => submitPatient(transcript)}>就这样留下<Check size={19} /></button><button className="garden-text-button" onClick={requestMic}>重新说</button></div></GardenDialog>}
+    {modal === 'review' && <GardenDialog onPause={pauseConversation} title="Here is what I heard…" onClose={closeModal}><p className="dialog-note">Read it, change it, or try again. There is no hurry.</p><label className="sr-only" htmlFor="voice-review">Review your words</label><textarea id="voice-review" rows={4} maxLength={MAX_EXPRESSION} value={transcript} onChange={event => setTranscript(event.target.value)} /><div className="dialog-actions"><button className="garden-primary" disabled={!transcript.trim()} onClick={() => submitPatient(transcript)}>Share these words<Check size={19} /></button><button className="garden-text-button" onClick={requestMic}>Try speaking again</button></div></GardenDialog>}
 
-    {modal === 'pause' && <GardenDialog onPause={pauseConversation} title="我们先歇一会儿。" onClose={closeModal}><div className="dialog-symbol"><Heart size={35} strokeWidth={1.2} /></div><p className="dialog-lead">没关系，我们可以改天再来看它。</p><p className="dialog-note">已经说过的话和花朵都留在这里。麦克风与声音已停止。</p><div className="dialog-actions"><button className="garden-primary" onClick={resume}>回到花园<Leaf size={19} /></button><button className="garden-text-button" onClick={closeModal}>今天先到这里</button></div></GardenDialog>}
+    {modal === 'pause' && <GardenDialog onPause={pauseConversation} title="Let us rest for a while." onClose={closeModal}><div className="dialog-symbol"><Heart size={35} strokeWidth={1.2} /></div><p className="dialog-lead">{REASSURANCE}</p><button className="garden-secondary" onClick={() => readAloud(REASSURANCE)}>Hear these words</button><p className="dialog-note">Your words and flower stay here. The microphone and audio are off.</p><div className="garden-contact-options">{contact ? <><a className="garden-secondary" href={'tel:' + contact.phone}>Call {contact.name}</a><p className="dialog-note">Opens your device’s calling app for {contact.phone}. Review the number before calling.</p></> : <button className="garden-secondary" onClick={() => openContact(true)}>Add someone to call</button>}</div><div className="dialog-actions"><button className="garden-primary" onClick={resume}>Return to the garden<Leaf size={19} /></button><button className="garden-text-button" onClick={closeModal}>Rest for today</button></div></GardenDialog>}
 
-    {modal === 'finish' && current && <GardenDialog onPause={pauseConversation} title="把这段时光留下。" onClose={closeModal}><p className="dialog-note">不用再补充什么了，这些就很好。</p><label className="garden-field-label" htmlFor="flower-title">这朵花的名字</label><input id="flower-title" maxLength={100} value={title} onChange={event => setTitle(event.target.value)} /><div className="story-excerpts">{current.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? '你说过' : `${entry.name}补充`}</span><p>{entry.text}</p></blockquote>)}</div><div className="dialog-actions"><button className="garden-primary" onClick={finish}><Flower2 size={21} />让这朵花留下</button><button className="garden-text-button" onClick={closeModal}>再坐一会儿</button></div></GardenDialog>}
+    {modal === 'finish' && current && <GardenDialog onPause={pauseConversation} title="Keep this little moment." onClose={closeModal}><p className="dialog-note">What you have shared is enough.</p><label className="garden-field-label" htmlFor="flower-title">A name for your flower</label><input id="flower-title" maxLength={100} value={title} onChange={event => setTitle(event.target.value)} /><div className="story-excerpts">{current.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? 'You shared' : `${entry.name} shared`}</span><p>{entry.text}</p></blockquote>)}</div><div className="dialog-actions"><button className="garden-primary" onClick={finish}><Flower2 size={21} />Save for another day</button><button className="garden-text-button" onClick={closeModal}>Stay a little longer</button></div></GardenDialog>}
 
-    {modal === 'collection' && <GardenDialog onPause={pauseConversation} title="有些时光，一直在这里。" onClose={closeModal} wide><p className="dialog-note">点一朵花，看看或听听那段讲述。不用回答问题。</p><div className="flower-collection">{garden.flowers.map(flower => <button className="collection-flower-card" key={flower.id} onClick={() => showStory(flower)}><div><GardenFlower kind={flower.kind} /></div><span>{flower.title}</span><small>{flower.example ? '示例回忆' : flowerNames[flower.kind]}<ChevronRight size={14} /></small></button>)}</div>{garden.flowers.length === 0 && <p className="dialog-lead">花园还有很多空地。想说的时候，我们再种下一段时光。</p>}</GardenDialog>}
+    {modal === 'collection' && <GardenDialog onPause={pauseConversation} title="Little moments, always here." onClose={closeModal} wide><p className="dialog-note">Choose a flower to read or listen to its story. No questions to answer.</p><div className="flower-collection">{garden.flowers.map(flower => <button className="collection-flower-card" key={flower.id} onClick={() => showStory(flower)}><div><GardenFlower kind={flower.kind} stage={flower.stage} familyBud={flower.familyBud} sensoryDetails={flower.sensoryDetails} /></div><span>{flower.title}</span><small>{flower.example ? 'Example story' : flowerNames[flower.kind]}<ChevronRight size={14} /></small></button>)}</div>{garden.flowers.length === 0 && <p className="dialog-lead">There is room for your first little moment. We can plant it whenever you feel ready.</p>}</GardenDialog>}
 
-    {modal === 'story' && viewing && <GardenDialog onPause={pauseConversation} title={viewing.title} onClose={closeModal} wide><div className="story-layout"><div className="story-flower"><GardenFlower kind={viewing.kind} /><span>{flowerNames[viewing.kind]}</span></div><div><p className="story-record-label">{viewing.example ? '虚构示例 · 仅用于体验' : '我们留下的讲述'}</p><div className="story-excerpts">{viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? '你说过' : `${entry.name || '家人'}补充 · 已获得当次同意`}</span><p>{entry.text}</p></blockquote>)}</div>{speechAvailable && <button className="garden-secondary" onClick={() => speaking ? stopAudio() : readAloud(viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => `${entry.speaker === 'family' ? `${entry.name}补充：` : '你说过：'}${entry.text}`).join('。'))}>{speaking ? <Square size={18} /> : <Volume2 size={19} />}{speaking ? '停止朗读' : '听听这段讲述'}</button>}<p className="dialog-note">记录时间不代表事情发生的时间。这里保留的是讲述本身。</p>{!viewing.example && <button className="delete-story-button" onClick={() => { if (window.confirm('要从这台设备删除这段讲述和它的花朵吗？')) { commit({ ...gardenRef.current, flowers: gardenRef.current.flowers.filter(flower => flower.id !== viewing.id) }); if (featured?.id === viewing.id) setFeatured(null); closeModal(); } }}>删除这段讲述</button>}</div></div></GardenDialog>}
+    {modal === 'story' && viewing && <GardenDialog onPause={pauseConversation} title={viewing.title} onClose={closeModal} wide><div className="story-layout"><div className="story-flower"><GardenFlower kind={viewing.kind} stage={viewing.stage} familyBud={viewing.familyBud} sensoryDetails={viewing.sensoryDetails} /><span>{flowerNames[viewing.kind]}</span></div><div><p className="story-record-label">{viewing.example ? 'Fictional example · for demonstration' : 'The words we shared'}</p><div className="story-excerpts">{viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => <blockquote key={entry.id}><span>{entry.speaker === 'patient' ? 'You shared' : `${entry.name || 'Family'} shared · with permission`}</span><p>{entry.text}</p></blockquote>)}</div>{speechAvailable && <button className="garden-secondary" onClick={() => speaking ? stopAudio() : readAloud(viewing.entries.filter(entry => entry.speaker !== 'companion').map(entry => `${entry.speaker === 'family' ? `${entry.name} shared: ` : 'You shared: '}${entry.text}`).join('. '))}>{speaking ? <Square size={18} /> : <Volume2 size={19} />}{speaking ? 'Stop reading' : 'Listen to this story'}</button>}{viewing.stage < 7 && !viewing.example && <button className="garden-primary" onClick={() => continueStory(viewing)}><Play size={19} />Continue this story</button>}<p className="dialog-note">The saved date is the date of sharing, not the date of the event. These are the words as shared.</p>{!viewing.example && <button className="delete-story-button" onClick={() => { if (window.confirm('Delete this story and its flower from this device?')) { commit({ ...gardenRef.current, flowers: gardenRef.current.flowers.filter(flower => flower.id !== viewing.id) }); if (featured?.id === viewing.id) setFeatured(null); closeModal(); } }}>Delete this story</button>}</div></div></GardenDialog>}
 
-    {modal === 'family-consent' && <GardenDialog onPause={pauseConversation} title="可以让身边的人补充一句吗？" onClose={closeModal}><p className="dialog-lead">补充会单独署名，不会替代你的讲述。</p><div className="dialog-actions"><button className="garden-primary" onClick={() => { setFamilyGranted(true); setModal('family-note'); }}>可以，听听看<Check size={19} /></button><button className="garden-secondary" onClick={() => { setFamilyGranted(false); closeModal(); setNotification('好的，我们先听你说。'); }}>这次不用</button></div></GardenDialog>}
+    {modal === 'family-consent' && <GardenDialog onPause={pauseConversation} title="May your companion add a little detail?" onClose={closeModal}><p className="dialog-lead">Their words will be named separately. Your story stays in your own words.</p><div className="dialog-actions"><button className="garden-primary" onClick={() => { setFamilyGranted(true); setModal('family-note'); }}>Yes, let us listen<Check size={19} /></button><button className="garden-secondary" onClick={() => { setFamilyGranted(false); closeModal(); setNotification('Of course. We are here to listen to you.'); }}>Not this time</button></div></GardenDialog>}
 
-    {modal === 'family-note' && familyGranted && <GardenDialog onPause={pauseConversation} title="轻轻补充一句。" onClose={closeModal}><p className="dialog-note">用“我印象里……”说自己的记忆，不纠正、不替他／她作答。</p><form onSubmit={saveFamily}><label className="garden-field-label" htmlFor="family-name">你的称呼</label><input id="family-name" required maxLength={40} value={familyName} onChange={event => setFamilyName(event.target.value)} placeholder="例如：小林" /><label className="garden-field-label" htmlFor="family-expression">你想补充的一点印象</label><textarea id="family-expression" required rows={3} maxLength={MAX_EXPRESSION} value={familyText} onChange={event => setFamilyText(event.target.value)} placeholder="我印象里……" /><div className="dialog-actions"><button className="garden-primary" type="submit">留下这一句<Leaf size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>这次先不补充</button></div></form></GardenDialog>}
+    {modal === 'family-note' && familyGranted && <GardenDialog onPause={pauseConversation} title="Share one gentle detail." onClose={closeModal}><p className="dialog-note">Start with “My impression is…” and share your own recollection. Leave room for their words.</p><form onSubmit={saveFamily}><label className="garden-field-label" htmlFor="family-name">Your name</label><input id="family-name" required maxLength={40} value={familyName} onChange={event => setFamilyName(event.target.value)} placeholder="For example: Alex" /><label className="garden-field-label" htmlFor="family-expression">A little detail from your perspective</label><textarea id="family-expression" required rows={3} maxLength={MAX_EXPRESSION} value={familyText} onChange={event => setFamilyText(event.target.value)} placeholder="My impression is…" /><div className="dialog-actions"><button className="garden-primary" type="submit">Save this detail<Leaf size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>Skip this detail</button></div></form></GardenDialog>}
 
-    {modal === 'settings' && <GardenDialog onPause={pauseConversation} title="把花园调得更舒服。" onClose={closeModal}><div className="garden-settings"><label><span><Leaf size={19} />减少动效<small>用静态变化呈现花朵生长。</small></span><input type="checkbox" checked={reduceMotion} onChange={event => setReduceMotion(event.target.checked)} /></label><label><span>{autoRead ? <Volume2 size={19} /> : <VolumeX size={19} />}自动轻声朗读<small>使用设备合成声音，不模仿家人。</small></span><input type="checkbox" checked={autoRead} disabled={!speechAvailable} onChange={event => { setAutoRead(event.target.checked); if (!event.target.checked) stopAudio(); }} /></label><label><span><ShieldCheck size={19} />使用云端 AI<small>{aiAvailable ? '开启后，每次发送会把当前会话最近的文字交给 OpenAI；不包含其他花朵或录音。' : '尚未连接。当前为本地规则回应，可以完整体验花园流程。'}</small></span><input type="checkbox" checked={cloudAllowed} disabled={!aiAvailable || thinking || recording} onChange={event => setCloudAllowed(event.target.checked)} /></label></div><p className="dialog-note">你可以随时关闭云端 AI。AI 可能出错；这个花园提供陪伴，不提供诊断、治疗或医疗建议。</p><div className="data-controls"><h3>你的讲述，由你保管。</h3><p>数据保存在当前浏览器。清除浏览器数据会移除花园，可以先导出副本。</p><button className="garden-secondary" onClick={() => download(JSON.stringify(gardenRef.current, null, 2), 'memory-garden.json')}>导出花园副本<ArrowRight size={18} /></button>{hasCorruptData && <button className="garden-text-button" onClick={() => { try { download(localStorage.getItem(GARDEN_KEY) || '', 'memory-garden-original.json'); } catch { setNotification('原始记录暂时无法读取。'); } }}>导出未覆盖的原始记录</button>}</div></GardenDialog>}
+    {modal === 'settings' && <GardenDialog className="garden-settings-drawer" onPause={pauseConversation} title="Make yourself comfortable." onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /><p className="dialog-note">Your stories stay on this device for your privacy.</p><div className="garden-voice-settings"><h3>Voice volume</h3><div><button aria-label="Lower volume" onClick={() => setVoiceVolume(value => Math.max(0, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceVolume * 100)}%</output><button aria-label="Raise volume" onClick={() => setVoiceVolume(value => Math.min(1, +(value + .1).toFixed(1)))}>+</button></div><h3>Reading speed</h3><div><button aria-label="Slower voice" onClick={() => setVoiceRate(value => Math.max(.5, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceRate * 100)}%</output><button aria-label="Faster voice" onClick={() => setVoiceRate(value => Math.min(1.2, +(value + .1).toFixed(1)))}>+</button></div></div><div className="garden-settings"><label><span><Leaf size={19} />Reduce motion<small>Show growth without animation.</small></span><input type="checkbox" checked={reduceMotion} onChange={event => setReduceMotion(event.target.checked)} /></label><label><span>{autoRead ? <Volume2 size={19} /> : <VolumeX size={19} />}Read on touch<small>Speaks when you explore a topic or open a reply. You can turn this off.</small></span><input type="checkbox" checked={autoRead} disabled={!speechAvailable} onChange={event => { setAutoRead(event.target.checked); if (!event.target.checked) stopAudio(); }} /></label><details className="garden-developer-options"><summary>Developer options</summary><p>Local demo / guided replies</p><label><span><ShieldCheck size={19} />Use cloud AI<small>{aiAvailable ? 'When on, recent text from this conversation is sent to OpenAI for each reply. Other flowers and recordings are excluded.' : 'Not connected. Local guided replies let you explore the full garden experience.'}</small></span><input type="checkbox" checked={cloudAllowed} disabled={!aiAvailable || thinking || recording} onChange={event => setCloudAllowed(event.target.checked)} /></label><p>Reset removes this app’s stories, contact and name on this device. Other browser data is untouched.</p><button className="garden-secondary" onClick={clearDemoGarden}>Reset demo garden</button></details></div><p className="dialog-note">You can turn cloud AI off at any time. AI can make mistakes. This garden offers companionship, without diagnosis, treatment, or medical advice.</p><div className="data-controls"><h3>Someone close to you.</h3><p>{contact ? contact.name + ' · ' + contact.phone : 'Add someone you would like to call when you want company.'}</p><button className="garden-secondary" onClick={() => openContact()}>{contact ? 'Edit contact' : 'Add a contact'}</button>{contact && <button className="garden-text-button" onClick={() => { if (writeContact(null)) setContact(null); else setNotification('This contact could not be removed. Please try again.'); }}>Remove contact</button>}<p>Contact details stay on this device and are never included in AI conversations. Calls only begin when you choose to call.</p></div><div className="data-controls"><h3>Your stories, in your care.</h3><p>Stories are saved in this browser. Clearing browser data removes your garden. You can export a copy first.</p><button className="garden-secondary" onClick={() => download(JSON.stringify(gardenRef.current, null, 2), 'memory-garden.json')}>Export your garden<ArrowRight size={18} /></button>{hasCorruptData && <button className="garden-text-button" onClick={() => { try { download(localStorage.getItem(GARDEN_KEY) || '', 'memory-garden-original.json'); } catch { setNotification('The original data could not be read.'); } }}>Export original data</button>}</div>{storageError && <p role="alert" className="garden-storage-error">{storageError}</p>}<button className="garden-secondary garden-exit" onClick={leaveGarden}>Leave the garden</button></GardenDialog>}
+    {modal === 'name' && <GardenDialog onPause={pauseConversation} title="Whose garden is this?" onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /></GardenDialog>}
+    {modal === 'contact' && <GardenDialog onPause={pauseConversation} title="Someone you can call." onClose={closeModal}><p className="dialog-note">Choose a family member, friend, or someone you trust. We will never call them automatically.</p><form onSubmit={saveContact}><label className="garden-field-label" htmlFor="contact-name">Contact name</label><input id="contact-name" autoComplete="off" required maxLength={40} value={contactName} onChange={event => setContactName(event.target.value)} /><label className="garden-field-label" htmlFor="contact-phone">Phone number</label><input id="contact-phone" type="tel" inputMode="tel" autoComplete="off" required maxLength={32} aria-describedby="contact-note" value={contactPhone} onChange={event => setContactPhone(event.target.value)} /><p id="contact-note" className="dialog-note">Include the country code when needed. This opens the calling app on your device; a calling app or phone service is required.</p>{contactError && <p className="garden-storage-error" role="alert">{contactError}</p>}<div className="dialog-actions"><button className="garden-primary" type="submit">Save contact<Check size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>Not now</button></div></form></GardenDialog>}
   </div>;
 }
