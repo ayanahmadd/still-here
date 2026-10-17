@@ -91,3 +91,12 @@
 .cognitive-garden .screen-entrance .magic-entry { margin:0 auto; }
 .entrance-identity { position:absolute; bottom:calc(100% + 28px); left:50%; width:min(800px,90vw); transform:translateX(-50%); pointer-events:none; }
 .entrance-identity h1 { margin:0; }
+/* Sound is available from the garden itself, without opening Settings. */
+.garden-sound-trigger { position:absolute; z-index:10; right:100px; top:14px; display:grid; place-items:center; width:80px; height:80px; border:0; border-radius:50%; background:transparent; color:var(--garden-secondary); }
+.garden-sound-trigger:hover { background:#e8ecde99; }
+.garden-sound-trigger[aria-pressed="true"] { color:var(--garden-ink); background:#e8ecde80; }
+.cognitive-garden .garden-header { padding-right:180px; }
+@media (max-width:760px) {
+ .garden-sound-trigger { right:92px; top:10px; }
+ .cognitive-garden .garden-header { padding-right:172px; }
+}

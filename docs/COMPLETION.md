@@ -11,17 +11,25 @@ Repository: https://github.com/ayanahmadd/still-here
 - Optional first-time naming invitation, reviewed voice name entry, and a large Settings name editor. Names never create flowers or count as memory details.
 - Watercolor landing page with a large title/name and a translucent leaf target. The leaf is centered; “Enter” appears on hover, focus, or touch.
 - Three topic cues with a large icon and a short English word. A whole new set of three can be requested.
-- Topic voice hints on deliberate mouse exploration, touchstart, keyboard focus, or selection. Speech is deduplicated and previous narration is cancelled.
-- AI bubble initially shows quiet dots. Touch/click/exploration reveals a typewriter message and requests device narration. New replies do not narrate themselves.
+- Topic voice hints on deliberate mouse exploration, touchstart, keyboard focus, or selection. Each hint is narrated at most once per visit, and previous narration is cancelled.
+- AI bubble initially shows quiet dots. Each new reply is narrated once by default; touch/click/exploration reveals its typewriter text without repeating its voice.
 - Eight growth stages: empty → seed → sprout → stem → leaf → bud → petal → bloom. First meaningful expression creates only a seed. Saving retains the current stage.
 - Family tips remain separate from activities; each family detail requires consent and retains its source.
 - Saved flowers grow directly in a horizontally pannable garden, at their actual stage. Mouse drag, touch swipe, and keyboard exploration are supported. Clicking a flower opens its story.
 - Footer, footer divider rules, technical mode text, and the “Visit your flowers” entrance have been removed.
-- Top-right Settings icon opens a soft drawer with name editing, volume/speed, reduced motion, read-on-touch preference, a trusted contact, export, privacy information, and a leave action.
+- Top-right Settings icon opens a soft drawer with name editing, sound volume/voice speed, reduced motion, companion-voice preference, a trusted contact, export, privacy information, and a leave action.
 - Developer options contain the local/cloud mode controls and one-click demo reset. The exact privacy copy is: **Your stories stay on this device for your privacy.**
 - Stable device garden UUID, named-stage localStorage documents, validated legacy-data migration, paused restoration, original-data protection, and app-scoped reset. Unrelated browser data is preserved.
 - Refusal, discomfort, and idle pauses cancel voice/recording/pending replies without reducing or removing growth.
 - Three original SVG activity icons, navigation, and return routes for **Picture Together**, **Familiar Sounds**, and **Little Notes**.
+
+## Sound update
+
+- A locally hosted, original 64-second soft-key composition plays once per visit. There is no loop, replay timer, or playlist. Ending the track does not restart it.
+- Music is enabled by default; browsers may wait for a first click/key. It pauses during narration, microphone use, Settings/rest dialogs, and while the tab is hidden.
+- The top-right sound icon and Settings Sound switch mute music and cancel queued/active speech immediately. Mute is remembered in localStorage (`memory-garden-audio`). Unmuting resumes an unfinished piece; it never replays a finished piece.
+- Repeated hover, touch, click, and opening/closing Settings do not replay an already narrated automatic hint/reply. The explicit story-listening button remains available when sound is on.
+- Music stops when leaving the garden route for a mini-game; games own their audio lifecycle.
 
 ## Teammate games still to connect
 
@@ -33,7 +41,8 @@ The three game pages intentionally say **Coming soon**. Their gameplay is not im
 - Production build, type checks, and generated routes.
 - Browser QA at 320, 390, 768, 1024, and 1440 CSS px: layout, large core targets, touch/hover reveal, speech deduplication, message typing/reset, footer removal, settings, name edits/voice, actual saved-stage rendering, panning, and reset.
 - Additional browser checks: reviewed speech before growth, immediate refusal during recognition, cancellation of delayed AI replies, 12 flowers without a three-flower cap, real browser touch swipe, and voice volume/rate.
-- Voice and cloud calls were mocked for automated checks; no paid model call or telephone call was made.
+- Audio regression checks: the hosted WAV decodes as 64 seconds, music is non-looping, browser-blocked autoplay retries on a gesture, repeated hover does not repeat narration, master mute cancels sound and survives reload, completed music stays ended after unmute/modal changes, and sound controls retain 80px targets at mobile sizes.
+- Voice and cloud calls were mocked for automated checks; no paid model call or telephone call was made. Music decoding used the actual local WAV.
 
 ## Practical limits
 

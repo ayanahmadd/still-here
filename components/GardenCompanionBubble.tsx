@@ -35,7 +35,7 @@ export default function GardenCompanionBubble({ message, messageKey, thinking, b
 
   return <div className={'companion-bubble quiet-companion' + (revealed ? ' is-revealed' : '')} aria-busy={thinking}>
     {(revealed || speaking) && <div className="bubble-topline"><span><Leaf size={18} aria-hidden="true" />Your companion</span>{speaking && <button className="bubble-listen" aria-label="Stop voice" onClick={onStop}><Square size={22} aria-hidden="true" /><span>Stop</span></button>}</div>}
-    <button className="bubble-reveal" aria-label={revealed ? 'Hear the companion message again' : 'Listen to your garden companion'} aria-expanded={revealed} aria-controls={messageId} disabled={blocked || thinking}
+    <button className="bubble-reveal" aria-label={revealed ? 'Garden companion message' : 'Listen to your garden companion'} aria-expanded={revealed} aria-controls={messageId} disabled={blocked || thinking}
       onPointerMove={event => { if (event.pointerType === 'mouse') reveal(); }} onTouchStart={() => reveal()}
       onFocus={event => { if (event.currentTarget.matches(':focus-visible')) reveal(); }} onClick={() => reveal(true)}>
       {revealed ? <span className="bubble-message" aria-hidden="true">{typed || '\u00a0'}</span> : <span className="quiet-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>}

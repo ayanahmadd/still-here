@@ -39,3 +39,11 @@ The entrance-only additions are in `app/entrance.css`, imported after `garden.cs
 - Reduced motion: disables decorative movement and skips the transition delay.
 
 Production build and browser checks passed at 320, 390, 768, 1024, 1440, and 1920 CSS px. Checks included halo/typography, CTA hover and ripple, gate cue, breathing duration and scale, transition completion, no flowers, keyboard entry, and reduced motion. GitHub publication remains pending user approval.
+
+## One-pass audio update (2026-10-17)
+
+- `public/audio/garden-morning.wav` decoded in the browser: 64 seconds, mono, without looping.
+- Browser audio test doubles verified default playback, gesture fallback after autoplay denial, music pausing during speech/dialogs, immediate master mute, persisted mute on reload, and no replay after `ended`, unmute, or Settings close.
+- Re-entering a hovered topic or touching an already narrated reply does not queue the narration again. A browser-blocked unheard narration may be retried by a deliberate gesture.
+- Sound and Settings targets remain at least 80x80px with no horizontal overflow or name overlap at 320, 390, 768, and 1440px.
+- Existing reviewed-voice, refusal, late-reply cancellation, saved-stage, touch-pan, and three-game navigation browser checks pass.

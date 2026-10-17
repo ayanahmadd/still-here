@@ -17,7 +17,7 @@ Open http://localhost:3000. No API key is required for local guided replies; mod
 
 1. Begin on a quiet entrance page with an empty watercolor meadow.
 2. Enter and choose one of three icon cues: Places, People, or Home. Hover/touch requests the full spoken invitation.
-3. Touch the quiet companion bubble to reveal and hear one gentle message, then answer by voice or text. No flower appears before a confirmed answer.
+3. Each new companion reply is read once by default. Touch the quiet bubble to reveal its words, then answer by voice or text. No flower appears before a confirmed answer.
 4. The first meaningful answer creates a seed. Each distinct additional detail advances one stage: sprout, stem, leaf, bud, petal, then bloom. Repetition is welcome and does not force progress.
 5. Choose **Keep this moment**, review the words and title, then save at its current growth stage. Open the story later and choose Continue this story; saving never forces a bloom.
 6. Drag or swipe the garden to explore saved flowers. Tap a flower to read/listen, continue it, or delete its story. Settings provides export.
@@ -87,4 +87,4 @@ See [the incremental implementation record](docs/M1-M9-implementation.md) and [t
 
 See [Completion report](docs/COMPLETION.md) and [Teammate integration guide](docs/TEAM-HANDOFF.md). These describe the current UI and supersede older incremental design notes. The footer and gallery entrance are removed. The top-right Settings drawer includes voice controls, optional name/contact editing, privacy, Developer options, demo reset, and leave.
 
-Names resolve from an optional `?name=Mary` invitation, then localStorage `gardenName`, then `My Garden`. Flower storage is a validated version-2 document with a stable `garden_id`, named stages, public details, and extra provenance fields. No registration or active database is used. New replies stay quiet until explored; hover speech depends on browser activation policy.
+Names resolve from an optional `?name=Mary` invitation, then localStorage `gardenName`, then `My Garden`. Flower storage is a validated version-2 document with a stable `garden_id`, named stages, public details, and extra provenance fields. No registration or active database is used. New replies are narrated once by default; exploring the same topic or reply never queues repeat narration. A soft original 64-second background piece plays once per visit, without looping. The top-right sound button immediately mutes music and narration, and remembers that choice. Browser autoplay restrictions may defer sound until the first click or key.

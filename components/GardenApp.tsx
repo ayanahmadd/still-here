@@ -11,6 +11,7 @@ import GardenTopicCue from './GardenTopicCue';
 import GardenCompanionBubble from './GardenCompanionBubble';
 import GardenCanvas from './GardenCanvas';
 import GardenNameEditor from './GardenNameEditor';
+import { useGardenMusic } from '../lib/use-garden-music';
 import { DEFAULT_GARDEN_NAME, NAME_PROMPT_KEY, gardenLabel, readGardenName, writeGardenName } from '../lib/garden-name';
 import { GardenContact, normalisePhone, readContact, writeContact } from '../lib/garden-contact';
 import { COMFORT, REASSURANCE, GARDEN_KEY, GardenEntry, GardenMemory, GardenStore, MAX_EXPRESSION, OPENING, addFamily, addPatient, finishMemory, flowerNames, isStopSignal, localReply, newMemory, readGarden, resetGarden, topics, writeGarden } from '../lib/garden';
@@ -31,6 +32,9 @@ export default function GardenApp() {
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [voiceVolume, setVoiceVolume] = useState(0.9);
   const [voiceRate, setVoiceRate] = useState(0.8);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const mutedRef = useRef(false);
+  const narrated = useRef(new Set<string>());
   const [speechNotice, setSpeechNotice] = useState('');
   const [userInteraction, setUserInteraction] = useState(0);
   const speechSequence = useRef(0);
@@ -82,6 +86,7 @@ export default function GardenApp() {
   const inFlight = useRef(false);
   const paused = useRef(false);
   const waitingNotice = useRef(false);
+  const silenceMusic = useGardenMusic(loaded && !soundMuted, recording || speaking || !!modal, voiceVolume * .16);
 
   useEffect(() => {
     const name = readGardenName(window.location.search); setOwnerName(name);
@@ -104,12 +109,17 @@ export default function GardenApp() {
     }
     setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     setContact(readContact());
+    try { const muted = localStorage.getItem('memory-garden-audio') === 'muted'; mutedRef.current = muted; setSoundMuted(muted); } catch {}
     setSpeechAvailable('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined');
     setLoaded(true);
     const controller = new AbortController();
     fetch('/api/garden', { signal: controller.signal, cache: 'no-store' }).then(response => response.json()).then(data => setAiAvailable(data.available === true)).catch(() => {});
     return () => { speechSequence.current++; speechActive.current = false; transitions.current.forEach(clearTimeout); controller.abort(); request.current?.abort(); voiceEpoch.current++; recognition.current?.abort(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
   }, []);
+
+  useEffect(() => {
+    if (loaded && screen === 'garden' && !modal && !recording && !thinking && autoRead) readAloud(bubble, true);
+  }, [loaded, screen, bubble, modal, recording, thinking, autoRead]);
 
   useEffect(() => { if (screen !== 'entrance' && showNamePrompt) { try { localStorage.setItem(NAME_PROMPT_KEY, 'true'); } catch {} } }, [screen, showNamePrompt]);
 
@@ -146,7 +156,19 @@ export default function GardenApp() {
     setSpeaking(false);
   }
 
-  function readAloud(text: string) {
+  function setMuted(muted: boolean) {
+    mutedRef.current = muted; setSoundMuted(muted);
+    if (muted) { stopAudio(); silenceMusic(); }
+    try { if (muted) localStorage.setItem('memory-garden-audio', 'muted'); else localStorage.removeItem('memory-garden-audio'); } catch {}
+  }
+
+  function changeVolume(value: number) {
+    setVoiceVolume(value);
+    if (value === 0) { stopAudio(); silenceMusic(); }
+  }
+
+  function readAloud(text: string, once = false) {
+    if (mutedRef.current || voiceVolume <= 0 || (once && narrated.current.has(text))) return;
     if (speechActive.current && utterance.current?.text === text) return;
     stopAudio();
     if (!speechAvailable) { setSpeechNotice('Voice is unavailable here. You can read the words instead.'); return; }
@@ -162,12 +184,15 @@ export default function GardenApp() {
       voice.onerror = event => {
         if (token !== speechSequence.current) return;
         speechActive.current = false; setSpeaking(false);
+        // A browser-blocked first attempt was never heard; allow a deliberate tap to retry.
+        if (event.error === 'not-allowed') narrated.current.delete(text);
         if (event.error !== 'canceled' && event.error !== 'interrupted') setSpeechNotice(event.error === 'not-allowed' ? 'Tap to hear the words.' : 'Voice is unavailable right now. You can read the words instead.');
       };
       utterance.current = voice; speechActive.current = true; setSpeaking(true);
-      // Keep this call synchronous with hover, touchstart, focus, or click.
+      if (once) narrated.current.add(text);
+      // Gesture retries stay synchronous; browsers may block the first automatic narration.
       window.speechSynthesis.speak(voice);
-    } catch { speechActive.current = false; setSpeaking(false); setSpeechNotice('Voice is unavailable right now. You can read the words instead.'); }
+    } catch { if (once) narrated.current.delete(text); speechActive.current = false; setSpeaking(false); setSpeechNotice('Voice is unavailable right now. You can read the words instead.'); }
   }
 
   function stopWork(keepAudio = false) {
@@ -225,7 +250,7 @@ export default function GardenApp() {
     setSelectedTopic(id);
     setShowNamePrompt(false);
     stopWork(true); setNotification(''); setDraft('');
-    if (autoRead) readAloud(question);
+    if (autoRead) readAloud(question, true);
     transitions.current.push(setTimeout(() => {
     const state = gardenRef.current;
     setScreen('garden'); setFeatured(null); setJustBloomed(false);
@@ -411,6 +436,7 @@ export default function GardenApp() {
       setHasCorruptData(false); setStorageError(''); setNotification(''); setSpeechNotice('');
       setTopicSet(0); setSelectedTopic(null); setEntering(false); setArriving(false); setModal(null); setScreen('entrance');
       setBubble(REASSURANCE); setVoiceVolume(.9); setVoiceRate(.8); paused.current = false;
+      narrated.current.clear(); setMuted(false);
       setCloudAllowed(false); setAutoRead(true); setMicAccepted(false);
       window.history.replaceState(null, '', '/');
     } catch { setStorageError('This garden could not be reset. Please keep this page open and try again.'); }
@@ -437,6 +463,7 @@ export default function GardenApp() {
     </header>}
 
     <button className="garden-settings-trigger" aria-label="Settings" onClick={() => { stopAudio(); setModal('settings'); }}><Settings2 size={25} strokeWidth={1.3} aria-hidden="true" /></button>
+    <button className="garden-sound-trigger" aria-label={soundMuted ? 'Unmute sound' : 'Mute sound'} aria-pressed={soundMuted} onClick={() => setMuted(!mutedRef.current)}>{soundMuted ? <VolumeX size={25} strokeWidth={1.3} aria-hidden="true" /> : <Volume2 size={25} strokeWidth={1.3} aria-hidden="true" />}</button>
     <main id="garden-main">
       <section className={'garden-scene screen-' + screen + (featured && !current ? ' scene-has-bloom' : '') + (entering ? ' scene-entering' : '')} data-growth={activeFlower?.stage ? undefined : 'empty'} aria-label="Memory garden">
         {screen === 'entrance' ? <div className="entrance-landscape-frame" aria-hidden="true"><div className="entrance-landscape-motion">
@@ -454,7 +481,7 @@ export default function GardenApp() {
           <h1>A little place to begin.</h1>
           <p className="topic-description">Choose what feels close.</p>
           <div key={topicSet} className={'topic-bubbles' + (selectedTopic ? ' is-choosing' : '')}>{topics.slice(topicSet * 3, topicSet * 3 + 3).map((topic, index) => <GardenTopicCue key={topic.id} id={topic.id} index={index} selected={selectedTopic === topic.id} disabled={!!selectedTopic} previewing={previewTopic === topic.id}
-            onPreview={() => { setPreviewTopic(topic.id); if (autoRead) readAloud(topic.question); }}
+            onPreview={() => { setPreviewTopic(topic.id); if (autoRead) readAloud(topic.question, true); }}
             onLeave={() => setPreviewTopic(value => value === topic.id ? null : value)}
             onChoose={() => chooseTopic(topic.question, topic.id)} />)}</div>
           {(speaking || speechNotice) && <div className="topic-voice-controls">{speaking && <button className="quiet-stop-voice" aria-label="Stop voice" onClick={stopAudio}><Square size={24} aria-hidden="true" /><span>Stop</span></button>}{speechNotice && <p role="status">{speechNotice}</p>}</div>}
@@ -464,7 +491,7 @@ export default function GardenApp() {
         </div>}
         {screen === 'garden' && <>
         <div className="garden-introduction"><p><span /> A GARDEN OF LITTLE MOMENTS</p><h1>Little by little, a memory blooms.</h1></div>
-        <GardenCompanionBubble message={bubble} messageKey={lastCompanion?.id || current?.id || featured?.id || 'opening'} thinking={thinking} blocked={thinking || recording || !!modal} speaking={speaking} reduceMotion={reduceMotion} onSpeak={text => { setUserInteraction(value => value + 1); if (autoRead) readAloud(text); }} onStop={stopAudio} />
+        <GardenCompanionBubble message={bubble} messageKey={lastCompanion?.id || current?.id || featured?.id || 'opening'} thinking={thinking} blocked={thinking || recording || !!modal} speaking={speaking} reduceMotion={reduceMotion} onSpeak={text => { setUserInteraction(value => value + 1); if (autoRead) readAloud(text, true); }} onStop={stopAudio} />
         {speechNotice && <p className="quiet-speech-notice" role="status">{speechNotice}</p>}
 
         {activeFlower && activeFlower.stage > 0 && <div className={'current-flower-place' + (justBloomed ? ' freshly-bloomed' : '')} key={activeFlower?.id || 'empty'}>
@@ -512,7 +539,7 @@ export default function GardenApp() {
 
     {modal === 'family-note' && familyGranted && <GardenDialog onPause={pauseConversation} title="Share one gentle detail." onClose={closeModal}><p className="dialog-note">Start with “My impression is…” and share your own recollection. Leave room for their words.</p><form onSubmit={saveFamily}><label className="garden-field-label" htmlFor="family-name">Your name</label><input id="family-name" required maxLength={40} value={familyName} onChange={event => setFamilyName(event.target.value)} placeholder="For example: Alex" /><label className="garden-field-label" htmlFor="family-expression">A little detail from your perspective</label><textarea id="family-expression" required rows={3} maxLength={MAX_EXPRESSION} value={familyText} onChange={event => setFamilyText(event.target.value)} placeholder="My impression is…" /><div className="dialog-actions"><button className="garden-primary" type="submit">Save this detail<Leaf size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>Skip this detail</button></div></form></GardenDialog>}
 
-    {modal === 'settings' && <GardenDialog className="garden-settings-drawer" onPause={pauseConversation} title="Make yourself comfortable." onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /><p className="dialog-note">Your stories stay on this device for your privacy.</p><div className="garden-voice-settings"><h3>Voice volume</h3><div><button aria-label="Lower volume" onClick={() => setVoiceVolume(value => Math.max(0, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceVolume * 100)}%</output><button aria-label="Raise volume" onClick={() => setVoiceVolume(value => Math.min(1, +(value + .1).toFixed(1)))}>+</button></div><h3>Reading speed</h3><div><button aria-label="Slower voice" onClick={() => setVoiceRate(value => Math.max(.5, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceRate * 100)}%</output><button aria-label="Faster voice" onClick={() => setVoiceRate(value => Math.min(1.2, +(value + .1).toFixed(1)))}>+</button></div></div><div className="garden-settings"><label><span><Leaf size={19} />Reduce motion<small>Show growth without animation.</small></span><input type="checkbox" checked={reduceMotion} onChange={event => setReduceMotion(event.target.checked)} /></label><label><span>{autoRead ? <Volume2 size={19} /> : <VolumeX size={19} />}Read on touch<small>Speaks when you explore a topic or open a reply. You can turn this off.</small></span><input type="checkbox" checked={autoRead} disabled={!speechAvailable} onChange={event => { setAutoRead(event.target.checked); if (!event.target.checked) stopAudio(); }} /></label><details className="garden-developer-options"><summary>Developer options</summary><p>Local demo / guided replies</p><label><span><ShieldCheck size={19} />Use cloud AI<small>{aiAvailable ? 'When on, recent text from this conversation is sent to OpenAI for each reply. Other flowers and recordings are excluded.' : 'Not connected. Local guided replies let you explore the full garden experience.'}</small></span><input type="checkbox" checked={cloudAllowed} disabled={!aiAvailable || thinking || recording} onChange={event => setCloudAllowed(event.target.checked)} /></label><p>Reset removes this app’s stories, contact and name on this device. Other browser data is untouched.</p><button className="garden-secondary" onClick={clearDemoGarden}>Reset demo garden</button></details></div><p className="dialog-note">You can turn cloud AI off at any time. AI can make mistakes. This garden offers companionship, without diagnosis, treatment, or medical advice.</p><div className="data-controls"><h3>Someone close to you.</h3><p>{contact ? contact.name + ' · ' + contact.phone : 'Add someone you would like to call when you want company.'}</p><button className="garden-secondary" onClick={() => openContact()}>{contact ? 'Edit contact' : 'Add a contact'}</button>{contact && <button className="garden-text-button" onClick={() => { if (writeContact(null)) setContact(null); else setNotification('This contact could not be removed. Please try again.'); }}>Remove contact</button>}<p>Contact details stay on this device and are never included in AI conversations. Calls only begin when you choose to call.</p></div><div className="data-controls"><h3>Your stories, in your care.</h3><p>Stories are saved in this browser. Clearing browser data removes your garden. You can export a copy first.</p><button className="garden-secondary" onClick={() => download(JSON.stringify(gardenRef.current, null, 2), 'memory-garden.json')}>Export your garden<ArrowRight size={18} /></button>{hasCorruptData && <button className="garden-text-button" onClick={() => { try { download(localStorage.getItem(GARDEN_KEY) || '', 'memory-garden-original.json'); } catch { setNotification('The original data could not be read.'); } }}>Export original data</button>}</div>{storageError && <p role="alert" className="garden-storage-error">{storageError}</p>}<button className="garden-secondary garden-exit" onClick={leaveGarden}>Leave the garden</button></GardenDialog>}
+    {modal === 'settings' && <GardenDialog className="garden-settings-drawer" onPause={pauseConversation} title="Make yourself comfortable." onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /><p className="dialog-note">Your stories stay on this device for your privacy.</p><div className="garden-voice-settings"><h3>Sound volume</h3><div><button aria-label="Lower volume" onClick={() => changeVolume(Math.max(0, +(voiceVolume - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceVolume * 100)}%</output><button aria-label="Raise volume" onClick={() => changeVolume(Math.min(1, +(voiceVolume + .1).toFixed(1)))}>+</button></div><h3>Reading speed</h3><div><button aria-label="Slower voice" onClick={() => setVoiceRate(value => Math.max(.5, +(value - .1).toFixed(1)))}>−</button><output aria-live="polite">{Math.round(voiceRate * 100)}%</output><button aria-label="Faster voice" onClick={() => setVoiceRate(value => Math.min(1.2, +(value + .1).toFixed(1)))}>+</button></div></div><div className="garden-settings"><label><span>{soundMuted ? <VolumeX size={19} /> : <Volume2 size={19} />}Sound<small>Soft music plays once. Mute stops music and voice immediately.</small></span><input type="checkbox" checked={!soundMuted} onChange={event => setMuted(!event.target.checked)} /></label><label><span><Leaf size={19} />Reduce motion<small>Show growth without animation.</small></span><input type="checkbox" checked={reduceMotion} onChange={event => setReduceMotion(event.target.checked)} /></label><label><span>{autoRead ? <Volume2 size={19} /> : <VolumeX size={19} />}Companion voice<small>Each new reply is read once. Topic hints speak once when explored.</small></span><input type="checkbox" checked={autoRead} disabled={!speechAvailable} onChange={event => { setAutoRead(event.target.checked); if (!event.target.checked) stopAudio(); }} /></label><details className="garden-developer-options"><summary>Developer options</summary><p>Local demo / guided replies</p><label><span><ShieldCheck size={19} />Use cloud AI<small>{aiAvailable ? 'When on, recent text from this conversation is sent to OpenAI for each reply. Other flowers and recordings are excluded.' : 'Not connected. Local guided replies let you explore the full garden experience.'}</small></span><input type="checkbox" checked={cloudAllowed} disabled={!aiAvailable || thinking || recording} onChange={event => setCloudAllowed(event.target.checked)} /></label><p>Reset removes this app’s stories, contact and name on this device. Other browser data is untouched.</p><button className="garden-secondary" onClick={clearDemoGarden}>Reset demo garden</button></details></div><p className="dialog-note">You can turn cloud AI off at any time. AI can make mistakes. This garden offers companionship, without diagnosis, treatment, or medical advice.</p><div className="data-controls"><h3>Someone close to you.</h3><p>{contact ? contact.name + ' · ' + contact.phone : 'Add someone you would like to call when you want company.'}</p><button className="garden-secondary" onClick={() => openContact()}>{contact ? 'Edit contact' : 'Add a contact'}</button>{contact && <button className="garden-text-button" onClick={() => { if (writeContact(null)) setContact(null); else setNotification('This contact could not be removed. Please try again.'); }}>Remove contact</button>}<p>Contact details stay on this device and are never included in AI conversations. Calls only begin when you choose to call.</p></div><div className="data-controls"><h3>Your stories, in your care.</h3><p>Stories are saved in this browser. Clearing browser data removes your garden. You can export a copy first.</p><button className="garden-secondary" onClick={() => download(JSON.stringify(gardenRef.current, null, 2), 'memory-garden.json')}>Export your garden<ArrowRight size={18} /></button>{hasCorruptData && <button className="garden-text-button" onClick={() => { try { download(localStorage.getItem(GARDEN_KEY) || '', 'memory-garden-original.json'); } catch { setNotification('The original data could not be read.'); } }}>Export original data</button>}</div>{storageError && <p role="alert" className="garden-storage-error">{storageError}</p>}<button className="garden-secondary garden-exit" onClick={leaveGarden}>Leave the garden</button></GardenDialog>}
     {modal === 'name' && <GardenDialog onPause={pauseConversation} title="Whose garden is this?" onClose={closeModal}><GardenNameEditor name={ownerName} onSave={saveOwnerName} /></GardenDialog>}
     {modal === 'contact' && <GardenDialog onPause={pauseConversation} title="Someone you can call." onClose={closeModal}><p className="dialog-note">Choose a family member, friend, or someone you trust. We will never call them automatically.</p><form onSubmit={saveContact}><label className="garden-field-label" htmlFor="contact-name">Contact name</label><input id="contact-name" autoComplete="off" required maxLength={40} value={contactName} onChange={event => setContactName(event.target.value)} /><label className="garden-field-label" htmlFor="contact-phone">Phone number</label><input id="contact-phone" type="tel" inputMode="tel" autoComplete="off" required maxLength={32} aria-describedby="contact-note" value={contactPhone} onChange={event => setContactPhone(event.target.value)} /><p id="contact-note" className="dialog-note">Include the country code when needed. This opens the calling app on your device; a calling app or phone service is required.</p>{contactError && <p className="garden-storage-error" role="alert">{contactError}</p>}<div className="dialog-actions"><button className="garden-primary" type="submit">Save contact<Check size={19} /></button><button className="garden-text-button" type="button" onClick={closeModal}>Not now</button></div></form></GardenDialog>}
   </div>;

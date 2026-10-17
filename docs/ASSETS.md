@@ -28,3 +28,8 @@ Subjects:
 - File: `public/garden/empty-garden-background.png`. Generated with the built-in imagegen tool, copied without editing the original.
 - Replaces the earlier decorative flowering landscape in the app. No flowers or fictional stories are prefilled. Interactive plants appear only after confirmed patient expression.
 - Prompt: A refined hand painted watercolor empty meadow, pale sage grass, light earth, misty trees, a distant wooden gate on the right, ivory morning mist and generous negative space. Absolutely no flowers, blossoms, buds, people, animals, text, logos, or UI. Adult, dignified botanical storybook style, low saturation, warm paper grain, delicate transparent pigment washes. Wide 16:9 composition.
+
+## Original background music
+
+- File: `public/audio/garden-morning.wav`. Original algorithmically composed soft sine-based keys, created specifically for this project; no third-party recordings or sampled song excerpts.
+- 64 seconds, 22,050 Hz mono PCM WAV, gentle attack/release and overall fade in/out. Played locally once, never looped. No external audio service or network tracking.

@@ -127,7 +127,7 @@ Demo reset removes the garden, name, contact, and keys beginning with `memory-ga
 - No quizzes about memory accuracy, failure states, scores, rankings, or pressure.
 - Large interactive targets (80×80px for core icon controls), accessible labels, keyboard operation, and reduced motion.
 - Preserve `--garden-paper`, `--garden-ink`, `--garden-green`, `--garden-sage`, and `--garden-serif`.
-- Start audio after an intentional gesture. Cancel previous speech to avoid queues. Stop audio/timers/recognition on unmount and pause.
+- The garden shell has a one-pass 64-second background track and a master mute stored as `memory-garden-audio` (`muted` means silent). The shell stops its music when unmounted for a game. Games should respect this preference before starting any audio. Start game audio after an intentional gesture; never loop narration on hover. Cancel previous speech to avoid queues. Stop audio/timers/recognition on unmount and pause.
 - Do not start a microphone automatically or store raw audio.
 - Keep game controls out of the family consent panel.
 - A user can leave at any time. Never require game completion before returning.
