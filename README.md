@@ -49,7 +49,7 @@ Restart the server, open **Settings**, and enable **Use cloud AI**. The API key 
 
 The route uses the [OpenAI Responses API with structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses) and `store: false`. This disables Response application-state storage; it is not a guarantee of zero provider retention. See [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data).
 
-Only up to 20 recent text entries from the current conversation, totaling at most 16,000 characters, are sent. Other saved flowers and audio recordings are excluded. Browser speech recognition may process audio through the browser vendor's online service, with a separate explanation before microphone use. The app does not store raw recordings.
+Only up to 20 recent text entries from the current conversation, totaling at most 16,000 characters, are sent. Other saved flowers and audio recordings are excluded. Browser speech recognition may process audio through the browser vendor's online service, with a separate explanation before microphone use. Conversation/name input does not retain recordings. Little Notes offers a separate, disclosed recording and review flow, saving audio locally in IndexedDB only after Save voice note. Notes can be deleted individually or through demo reset.
 
 Paid cloud calls in this prototype are restricted to localhost and same-origin requests. Public deployment requires authentication, family access controls, persistent rate limits, and an appropriate privacy review.
 
@@ -91,4 +91,4 @@ Names resolve from an optional `?name=Mary` invitation, then localStorage `garde
 
 ## Main branch integration
 
-The default `main` branch runs the Next.js garden. The three activity routes directly import `src/games/PictureTogether.jsx`, `src/games/FamiliarSounds.jsx`, and `src/games/LittleNotes.jsx`. The original GitHub modules were empty; pending pages stay explicit until gameplay is implemented. Teammates can replace those component bodies without changing navigation. See [TEAM-HANDOFF.md](docs/TEAM-HANDOFF.md).
+The default `main` branch runs the Next.js garden. The three activity routes directly import `src/games/PictureTogether.jsx`, `src/games/FamiliarSounds.jsx`, and `src/games/LittleNotes.jsx`. Familiar Sounds and Little Notes now use the supplied desktop implementations, with sound assets, recording review, local persistence, deletion, navigation, and master mute connected. Picture Together remains an explicit pending page. Teammates can replace those component bodies without changing navigation. See [TEAM-HANDOFF.md](docs/TEAM-HANDOFF.md).

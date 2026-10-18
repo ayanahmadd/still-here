@@ -6,7 +6,7 @@ Repository: https://github.com/ayanahmadd/still-here
 
 ## Delivered
 
-- English interface throughout; no registration, passwords, or active database requirement.
+- English interface throughout; no registration, passwords, or server database requirement.
 - Personalized garden name on the landing page and garden header. Resolution order: `?name=Mary`, then localStorage `gardenName`, then `My Garden`. A URL invitation is consumed after reading so later edits survive reload.
 - Optional first-time naming invitation, reviewed voice name entry, and a large Settings name editor. Names never create flowers or count as memory details.
 - Watercolor landing page with a large title/name and a translucent leaf target. The leaf is centered; “Enter” appears on hover, focus, or touch.
@@ -31,13 +31,21 @@ Repository: https://github.com/ayanahmadd/still-here
 - Repeated hover, touch, click, and opening/closing Settings do not replay an already narrated automatic hint/reply. The explicit story-listening button remains available when sound is on.
 - Music stops when leaving the garden route for a mini-game; games own their audio lifecycle.
 
-## Teammate games still to connect
+## Connected teammate activities
 
-All three sidebar routes now import their corresponding `src/games` modules directly on `main`. The original GitHub game files were empty; the connected modules honestly display **Coming soon** until teammates add gameplay. `LittleNotes.jsx` was added separately; the empty `GentleQuestions.jsx` is preserved. See [TEAM-HANDOFF.md](TEAM-HANDOFF.md) for the exact files.
+**Familiar Sounds** and **Little Notes** now run the actual teammate implementations supplied from the desktop still-here project. Their sidebar badges say Explore. Picture Together remains Coming soon because its source file is still empty.
+
+- Familiar Sounds: six local sound clips, explicit non-looping play/pause, optional reflection, and a saved listening moment under a garden-scoped localStorage key.
+- Little Notes: recipient and prompt selection, explicit microphone capture, review/playback, explicit save, saved-note playback, and individual deletion. The route and heading consistently say Little Notes.
+- Voice blobs live only in IndexedDB (`memory-garden-voices-v1`), scoped to the garden ID. They are not sent to AI. Recording stops after two minutes or on exit; late microphone permission releases its tracks.
+- Shared return navigation, master mute, single-audio playback, background-tab pause, and audio cleanup are connected. No game result advances the main flower state.
+- Reset clears this garden's voice notes as well as its localStorage. Other gardens' notes and unrelated browser data remain. Text garden export does not include voice blobs; notes are managed in Little Notes.
+
+See [TEAM-HANDOFF.md](TEAM-HANDOFF.md) for the module contract.
 
 ## Verification
 
-- 13 domain/API tests: gradual growth, saving without skipping stages, consent, pauses, schema validation, UUID stability, public stage import, provenance, legacy migration, malformed-data preservation, reset isolation, contact validation, and name precedence.
+- 14 domain/API tests (including voice payload validation): gradual growth, saving without skipping stages, consent, pauses, schema validation, UUID stability, public stage import, provenance, legacy migration, malformed-data preservation, reset isolation, contact validation, and name precedence.
 - Production build, type checks, and generated routes.
 - Browser QA at 320, 390, 768, 1024, and 1440 CSS px: layout, large core targets, touch/hover reveal, speech deduplication, message typing/reset, footer removal, settings, name edits/voice, actual saved-stage rendering, panning, and reset.
 - Additional browser checks: reviewed speech before growth, immediate refusal during recognition, cancellation of delayed AI replies, 12 flowers without a three-flower cap, real browser touch swipe, and voice volume/rate.
@@ -53,8 +61,8 @@ All three sidebar routes now import their corresponding `src/games` modules dire
 
 ## Message you can send to the team
 
-> The Memory Garden shell has been integrated into `main`. The English garden, touch-to-reveal/speak interactions, saved-stage flowers, pannable garden, local storage, naming, and Settings are ready. The sidebar already links to Picture Together, Familiar Sounds, and Little Notes with matching icons. Those pages are honest placeholders until your games are ready. Please edit your connected component in `src/games/`, keep the shared top-level return link, and follow `docs/TEAM-HANDOFF.md` for storage and readiness. No route edit is needed. Please avoid editing the shared garden state machine or replacing the shell.
+> The Memory Garden shell has been integrated into `main`. The English garden, touch-to-reveal/speak interactions, saved-stage flowers, pannable garden, local storage, naming, and Settings are ready. The sidebar already links to Picture Together, Familiar Sounds, and Little Notes with matching icons. Familiar Sounds and Little Notes now run the supplied games. Picture Together still needs its implementation. Please edit your connected component in `src/games/`, keep the shared top-level return link, and follow `docs/TEAM-HANDOFF.md` for storage and readiness. No route edit is needed. Please avoid editing the shared garden state machine or replacing the shell.
 
 中文转述：
 
-> 花园主框架已经完成并上传到 `main` 分支。英文界面、触碰显示/朗读、渐进生长、本机保存、花园拖动、名字和设置都已就绪。侧栏已准备好三个小游戏入口和图标，游戏正文等你们接入。请把各自组件放到 `src/games/`，保留“返回花园”，按 `docs/TEAM-HANDOFF.md` 的路由与存储约定接入，尽量不要改共享花园状态机。
+> 花园和两个小游戏已接入 `main`：Familiar Sounds 支持选择声音、播放和保存感受；Little Notes 支持录音、回听、本机保存和删除。Picture Together 仍等待实际拼图代码。后续请从最新 `main` 开分支，按 `docs/TEAM-HANDOFF.md` 接入，保留返回花园和静音功能，不改共享花园状态机。

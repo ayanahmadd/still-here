@@ -53,3 +53,11 @@ Production build and browser checks passed at 320, 390, 768, 1024, 1440, and 192
 - Combined the latest GitHub main history with Memory Garden, retaining the existing main-branch src/App.jsx, src/index.css, and empty GentleQuestions.jsx.
 - The three activity routes now import the corresponding src/games components directly. Pending pages remain honest because both GitHub and the supplied still-here-main/src/games directory contained empty game files.
 - Production build and 13 domain/API tests pass. Browser checks cover all three sidebar links, mobile/desktop navigation, returning to the garden, and the one-pass/mute audio regression.
+
+## Actual game integration
+
+- Production build/type checks and 14 domain/API tests pass, including empty/oversized/unscoped voice payload rejection.
+- Browser QA used Chrome's synthetic test microphone, not a real microphone or patient recording. Verified no automatic capture, explicit review before saving, IndexedDB persistence after reload, per-note deletion, and late-permission cleanup after leaving.
+- All six supplied MP3 files decode in the browser. Verified play, pause, master mute, no loop, saved sound reflection, and unchanged saved flowers.
+- Reset deletes the current garden's voice notes and game progress while preserving another garden's note and unrelated storage.
+- Responsive layouts checked at 320, 390, 768, and 1440px.

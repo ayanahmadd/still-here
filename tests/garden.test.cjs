@@ -222,3 +222,11 @@ test('garden names prefer URL, then local storage, then My Garden, with stable p
   assert.equal(names.cleanGardenName('A'.repeat(100)).length,40);
   delete global.localStorage;
 });
+
+test('voice storage rejects empty, oversized and unscoped recordings before database access', async () => {
+  const voices = load('lib/garden-recordings.ts');
+  const voice = { id: 'voice-1', gardenId: 'garden-1', title: 'A little voice', recipient: 'To you', prompt: 'A small joy', audio: new Blob(['hello']), createdAt: Date.now() };
+  await assert.rejects(voices.saveVoice({ ...voice, gardenId: '' }), /cannot be saved/);
+  await assert.rejects(voices.saveVoice({ ...voice, audio: new Blob([]) }), /cannot be saved/);
+  await assert.rejects(voices.saveVoice({ ...voice, audio: new Blob([new Uint8Array(8 * 1024 * 1024 + 1)]) }), /cannot be saved/);
+});

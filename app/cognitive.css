@@ -100,3 +100,27 @@
  .garden-sound-trigger { right:92px; top:10px; }
  .cognitive-garden .garden-header { padding-right:172px; }
 }
+
+/* Teammate activities keep their own step layouts inside the shared garden shell. */
+.garden-game-shell > header { flex-wrap:wrap; }
+.garden-game-shell > header > a { min-height:80px; }
+.garden-game-mute { display:grid; place-items:center; flex-shrink:0; width:80px; height:80px; border:1px solid var(--garden-line); border-radius:50%; color:var(--garden-ink); background:var(--garden-sage); }
+.garden-game-notice { padding:16px 20px; margin:20px auto; border:1px solid var(--garden-line); border-radius:20px; background:var(--garden-sage); color:var(--garden-ink); font-size:20px; line-height:1.6; }
+.garden-game-content > div { min-height:0; padding:32px 0; background:transparent; }
+.garden-game-content button { min-height:80px; }
+.garden-game-content button:disabled { opacity:.55; }
+.garden-game-content textarea { min-height:160px; }
+.garden-game-content :is(p,h2,h3,button) { overflow-wrap:anywhere; }
+.garden-game-content h1,.garden-game-content h2,.garden-game-content h3 { font-family:var(--garden-serif); }
+.garden-game-content button:has(> svg:only-child) { min-width:80px; }
+.garden-game-content audio { display:block; width:100%; min-height:54px; }
+@media (max-width:520px) {
+ .garden-game-shell > header { flex-direction:row; align-items:center; gap:12px; }
+ .garden-game-shell > header > span { display:none; }
+ .garden-game-shell > header > a { flex:1; }
+ .garden-game-content > div > div { max-width:100%; }
+ .garden-game-content .text-5xl { font-size:36px; }
+}
+
+.garden-game-content [class*="text-[#789079]"],.garden-game-content [class*="text-[#6F786B]"] { color:var(--garden-secondary); }
+.garden-game-content [class*="bg-[#789079]"],.garden-game-content [class*="bg-[#B56D69]"] { background-color:var(--garden-green); }

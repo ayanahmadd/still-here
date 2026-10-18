@@ -33,3 +33,7 @@ Subjects:
 
 - File: `public/audio/garden-morning.wav`. Original algorithmically composed soft sine-based keys, created specifically for this project; no third-party recordings or sampled song excerpts.
 - 64 seconds, 22,050 Hz mono PCM WAV, gentle attack/release and overall fade in/out. Played locally once, never looped. No external audio service or network tracking.
+
+## Teammate sound assets
+
+The six local MP3 files in `public/sounds/` (rain, birds, music, ocean, fireplace, coffee) were supplied with the teammate's desktop still-here project and copied unchanged for Familiar Sounds. The supplied files do not include source/licensing metadata; they are not attributed to the garden's original generated composition.

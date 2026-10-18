@@ -32,7 +32,7 @@ export default function GardenNameEditor({ name, onSave }: { name: string; onSav
     <label className="garden-field-label" htmlFor="garden-owner-name">Garden name</label>
     <input id="garden-owner-name" autoComplete="off" maxLength={40} value={draft} onChange={event => setDraft(event.target.value)} placeholder="My Garden" />
     <div className="dialog-actions"><button type="submit" className="garden-primary">Save name</button><button type="button" className="garden-secondary name-voice-button" aria-label={recording ? 'Finish saying the name' : 'Say a name'} onClick={() => { if (recording) speech.current?.stop(); else setPermission(true); }}>{recording ? <Square size={24} /> : <Mic size={24} />}<span>{recording ? 'Finish' : 'Say a name'}</span></button></div>
-    {permission && !recording && <div className="name-voice-permission"><p>Your browser may process speech online. This app does not save the recording. You can check the name before saving.</p><button className="garden-secondary" type="button" onClick={() => { setPermission(false); start(); }}>Allow voice input</button></div>}
+    {permission && !recording && <div className="name-voice-permission"><p>Your browser may process speech online. Name recordings are not saved. You can check the name before saving.</p><button className="garden-secondary" type="button" onClick={() => { setPermission(false); start(); }}>Allow voice input</button></div>}
     {notice && <p className="dialog-note" role="status">{notice}</p>}
   </form>;
 }
