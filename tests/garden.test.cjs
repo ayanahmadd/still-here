@@ -230,3 +230,15 @@ test('voice storage rejects empty, oversized and unscoped recordings before data
   await assert.rejects(voices.saveVoice({ ...voice, audio: new Blob([]) }), /cannot be saved/);
   await assert.rejects(voices.saveVoice({ ...voice, audio: new Blob([new Uint8Array(8 * 1024 * 1024 + 1)]) }), /cannot be saved/);
 });
+
+test('picture collections contain six themes and package all local photo assets', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'lib/garden-pictures.json'), 'utf8'));
+  assert.deepEqual(Object.keys(manifest).sort(), ['celebrations', 'childhood', 'family', 'friends', 'pets', 'scenery']);
+  const assets = Object.values(manifest).flat();
+  assert.equal(new Set(assets).size, assets.length);
+  for (const photos of Object.values(manifest)) assert.ok(photos.length > 0);
+  for (const asset of assets) {
+    assert.match(asset, /^\/pictures\/[a-z]+\/[^/]+\.(?:jpg|jpeg|png|webp)$/i);
+    assert.ok(fs.statSync(path.join(__dirname, '..', 'public', asset)).size > 0);
+  }
+});

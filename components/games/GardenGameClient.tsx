@@ -9,6 +9,7 @@ import LittleNotes from '../../src/games/LittleNotes';
 import PictureTogether from '../../src/games/PictureTogether';
 import { readGarden } from '../../lib/garden';
 import { gardenActivities } from '../../lib/garden-activities';
+import photoManifest from '../../lib/garden-pictures.json';
 
 type ActivityId = typeof gardenActivities[number]['id'];
 
@@ -19,7 +20,7 @@ export default function GardenGameClient({ activity }: { activity: ActivityId })
   const [muted, setMuted] = useState(false);
   const mutedRef = useRef(false);
   const [notice, setNotice] = useState('');
-  const saved = useRef(false);
+  const saved = useRef(new Set<string>());
 
   function stopSound() {
     root.current?.querySelectorAll('audio').forEach(audio => audio.pause());
@@ -63,19 +64,21 @@ export default function GardenGameClient({ activity }: { activity: ActivityId })
     try { if (value) localStorage.setItem('memory-garden-audio', 'muted'); else localStorage.removeItem('memory-garden-audio'); } catch {}
   }
 
-  function complete(result: { type?: string; title?: string; reflection?: string; sound?: string }) {
-    if (activity === 'familiar-sounds') {
-      if (saved.current) return true;
+  function complete(result: { id?: string | number; type?: string; title?: string; reflection?: string; sound?: string; photo?: string; theme?: string }) {
+    if (activity !== 'little-notes') {
+      const completionId = activity === 'picture-together' ? String(result.id) : activity;
+      if (saved.current.has(completionId)) return true;
       if (!gardenId) { setNotice('This moment could not be saved. Your garden is unchanged.'); return false; }
       try {
-        const key = 'memory-garden-game-familiar-sounds-' + gardenId;
+        if (activity === 'picture-together' && !Object.values(photoManifest).flat().includes(result.photo || '')) throw new Error('Unknown picture');
+        const key = 'memory-garden-game-' + activity + '-' + gardenId;
         const previous = JSON.parse(localStorage.getItem(key) || '[]');
         if (!Array.isArray(previous)) throw new Error('Invalid saved moments');
-        localStorage.setItem(key, JSON.stringify([{ id: crypto.randomUUID(), createdAt: Date.now(), title: result.title, reflection: (result.reflection || '').slice(0, 1200), sound: result.sound }, ...previous]));
-        saved.current = true;
+        localStorage.setItem(key, JSON.stringify([{ id: crypto.randomUUID(), createdAt: Date.now(), title: result.title, reflection: (result.reflection || '').slice(0, 1200), sound: result.sound, photo: result.photo, theme: result.theme }, ...previous]));
+        saved.current.add(completionId);
       } catch { setNotice('This moment could not be saved. You can try again.'); return false; }
     }
-    setNotice(activity === 'little-notes' ? 'Your voice note is saved on this device.' : 'Your listening moment is saved on this device.');
+    setNotice(activity === 'little-notes' ? 'Your voice note is saved on this device.' : activity === 'picture-together' ? 'Your picture moment is saved on this device.' : 'Your listening moment is saved on this device.');
     return true;
   }
 
@@ -84,7 +87,7 @@ export default function GardenGameClient({ activity }: { activity: ActivityId })
     {muted && <p className="garden-game-notice">Sound is muted.</p>}
     {notice && <p className="garden-game-notice" role="status">{notice}</p>}
     <div className="garden-game-content">
-      {activity === 'familiar-sounds' ? <FamiliarSounds embedded soundMuted={muted} onBack={() => router.push('/?garden=1')} onComplete={complete} /> : activity === 'little-notes' ? <LittleNotes embedded gardenId={gardenId} soundMuted={muted} onBack={() => router.push('/?garden=1')} onComplete={complete} /> : <PictureTogether />}
+      {activity === 'familiar-sounds' ? <FamiliarSounds embedded soundMuted={muted} onBack={() => router.push('/?garden=1')} onComplete={complete} /> : activity === 'little-notes' ? <LittleNotes embedded gardenId={gardenId} soundMuted={muted} onBack={() => router.push('/?garden=1')} onComplete={complete} /> : <PictureTogether embedded onExplore={() => setNotice('')} onBack={() => router.push('/?garden=1')} onComplete={complete} />}
     </div>
   </main>;
 }

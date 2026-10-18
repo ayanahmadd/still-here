@@ -1,0 +1,29 @@
+{
+  "scenery": [
+    "/pictures/scenery/istockphoto-2130934199-612x612.jpg",
+    "/pictures/scenery/Natural_scenery.jpg"
+  ],
+  "pets": [
+    "/pictures/pets/360_F_1764506239_TmV7LZ1610WHrQ6He8UGLGNJYEiSfQlY.jpg",
+    "/pictures/pets/Dog_Breeds.jpg",
+    "/pictures/pets/istockphoto-1845512061-612x612.jpg"
+  ],
+  "celebrations": [
+    "/pictures/celebrations/cartoon-office-celebration-15570488.webp",
+    "/pictures/celebrations/images.jpeg",
+    "/pictures/celebrations/istockphoto-2161961467-612x612.jpg"
+  ],
+  "friends": [
+    "/pictures/friends/Friends_.jpg",
+    "/pictures/friends/images.jpeg"
+  ],
+  "childhood": [
+    "/pictures/childhood/images.jpeg",
+    "/pictures/childhood/istockphoto-1662857795-612x612.jpg",
+    "/pictures/childhood/istockphoto-1916612882-612x612.jpg",
+    "/pictures/childhood/istockphoto-2096480418-612x612.jpg"
+  ],
+  "family": [
+    "/pictures/family/images.jpeg"
+  ]
+}

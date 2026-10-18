@@ -33,8 +33,9 @@ Repository: https://github.com/ayanahmadd/still-here
 
 ## Connected teammate activities
 
-**Familiar Sounds** and **Little Notes** now run the actual teammate implementations supplied from the desktop still-here project. Their sidebar badges say Explore. Picture Together remains Coming soon because its source file is still empty.
+All three activities now run the supplied teammate implementations and show Explore in the sidebar: **Picture Together**, **Familiar Sounds**, and **Little Notes**.
 
+- Picture Together: six themed collections and 15 local example images, the original 3x3 drag puzzle, an optional whole-picture viewing mode accessible by keyboard, and explicit local saving of picture moments. Example photos are clearly distinguished from personal memories.
 - Familiar Sounds: six local sound clips, explicit non-looping play/pause, optional reflection, and a saved listening moment under a garden-scoped localStorage key.
 - Little Notes: recipient and prompt selection, explicit microphone capture, review/playback, explicit save, saved-note playback, and individual deletion. The route and heading consistently say Little Notes.
 - Voice blobs live only in IndexedDB (`memory-garden-voices-v1`), scoped to the garden ID. They are not sent to AI. Recording stops after two minutes or on exit; late microphone permission releases its tracks.
@@ -45,7 +46,7 @@ See [TEAM-HANDOFF.md](TEAM-HANDOFF.md) for the module contract.
 
 ## Verification
 
-- 14 domain/API tests (including voice payload validation): gradual growth, saving without skipping stages, consent, pauses, schema validation, UUID stability, public stage import, provenance, legacy migration, malformed-data preservation, reset isolation, contact validation, and name precedence.
+- 15 domain/API/asset tests (including voice payload validation and packaged picture collections): gradual growth, saving without skipping stages, consent, pauses, schema validation, UUID stability, public stage import, provenance, legacy migration, malformed-data preservation, reset isolation, contact validation, and name precedence.
 - Production build, type checks, and generated routes.
 - Browser QA at 320, 390, 768, 1024, and 1440 CSS px: layout, large core targets, touch/hover reveal, speech deduplication, message typing/reset, footer removal, settings, name edits/voice, actual saved-stage rendering, panning, and reset.
 - Additional browser checks: reviewed speech before growth, immediate refusal during recognition, cancellation of delayed AI replies, 12 flowers without a three-flower cap, real browser touch swipe, and voice volume/rate.
@@ -61,8 +62,8 @@ See [TEAM-HANDOFF.md](TEAM-HANDOFF.md) for the module contract.
 
 ## Message you can send to the team
 
-> The Memory Garden shell has been integrated into `main`. The English garden, touch-to-reveal/speak interactions, saved-stage flowers, pannable garden, local storage, naming, and Settings are ready. The sidebar already links to Picture Together, Familiar Sounds, and Little Notes with matching icons. Familiar Sounds and Little Notes now run the supplied games. Picture Together still needs its implementation. Please edit your connected component in `src/games/`, keep the shared top-level return link, and follow `docs/TEAM-HANDOFF.md` for storage and readiness. No route edit is needed. Please avoid editing the shared garden state machine or replacing the shell.
+> The Memory Garden shell has been integrated into `main`. The English garden, touch-to-reveal/speak interactions, saved-stage flowers, pannable garden, local storage, naming, and Settings are ready. The sidebar already links to Picture Together, Familiar Sounds, and Little Notes with matching icons. All three activities now run the supplied games. Picture Together includes the themed puzzle and optional whole-picture mode. Please edit your connected component in `src/games/`, keep the shared top-level return link, and follow `docs/TEAM-HANDOFF.md` for storage and readiness. No route edit is needed. Please avoid editing the shared garden state machine or replacing the shell.
 
 中文转述：
 
-> 花园和两个小游戏已接入 `main`：Familiar Sounds 支持选择声音、播放和保存感受；Little Notes 支持录音、回听、本机保存和删除。Picture Together 仍等待实际拼图代码。后续请从最新 `main` 开分支，按 `docs/TEAM-HANDOFF.md` 接入，保留返回花园和静音功能，不改共享花园状态机。
+> 花园和三个小游戏已接入 `main`：Picture Together 支持六个主题的拼图和直接看图；Familiar Sounds 支持选择声音、播放和保存感受；Little Notes 支持录音、回听、本机保存和删除。后续请从最新 `main` 开分支，按 `docs/TEAM-HANDOFF.md` 接入，保留返回花园和静音功能，不改共享花园状态机。

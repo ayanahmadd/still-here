@@ -37,3 +37,8 @@ Subjects:
 ## Teammate sound assets
 
 The six local MP3 files in `public/sounds/` (rain, birds, music, ocean, fireplace, coffee) were supplied with the teammate's desktop still-here project and copied unchanged for Familiar Sounds. The supplied files do not include source/licensing metadata; they are not attributed to the garden's original generated composition.
+
+## Teammate picture assets and puzzle dependency
+
+- `public/pictures/`: 15 supplied example images copied unchanged from the later desktop still-here archive, organized into family, friends, scenery, childhood, celebrations, and pets. Runtime uses the explicit local manifest in `lib/garden-pictures.json`; no remote photo requests are made. The files include stock-photo filenames and do not provide source/licensing metadata. They are labeled example images, not patient memories.
+- The original teammate puzzle uses `react-jigsaw-puzzle@1.0.5` by Yuri Becker, declared GPL-3.0-only in its package. Its license is included in the installed dependency. See the [upstream source and documentation](https://github.com/yuri-becker/react-jigsaw-puzzle). The dependency remains unmodified.

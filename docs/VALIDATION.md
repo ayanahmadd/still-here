@@ -61,3 +61,10 @@ Production build and browser checks passed at 320, 390, 768, 1024, 1440, and 192
 - All six supplied MP3 files decode in the browser. Verified play, pause, master mute, no loop, saved sound reflection, and unchanged saved flowers.
 - Reset deletes the current garden's voice notes and game progress while preserving another garden's note and unrelated storage.
 - Responsive layouts checked at 320, 390, 768, and 1440px.
+
+## Picture Together integration
+
+- 15 domain/API/asset tests and production build/type checks pass. All six themes contain local images.
+- Browser checks decode all 15 images, solve the actual 9-piece puzzle through mouse drags, save separate picture rounds, and keep a picture through the keyboard-only view flow.
+- Verified 320/390/768/1440px layouts, three ready sidebar links, return navigation, unchanged garden ID and flower stages, and scroll-lock cleanup when leaving during an interrupted touch drag.
+- Picture moments store local image references, not personal-memory claims or game scores. All collections are labeled as example photos.

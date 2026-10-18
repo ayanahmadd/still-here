@@ -32,7 +32,7 @@ When actual gameplay is ready, set only that module's `ready` field to `true` in
 
 ### Current availability
 
-Familiar Sounds and Little Notes use the actual desktop teammate implementations and are marked ready. Picture Together remains a connected placeholder because its supplied source file is empty. The empty GentleQuestions.jsx is preserved as a separate module. Teammate layouts and steps are retained, with recording privacy/lifecycle, navigation, and storage adapted to the garden.
+All three activities use the actual desktop teammate implementations and are marked ready. Picture Together was supplied in the later still-here-20261018T000906Z-1-001 folder. The empty GentleQuestions.jsx is preserved as a separate module. Teammate layouts and steps are retained, with recording privacy/lifecycle, navigation, and storage adapted to the garden.
 
 ## Storage and audio contract
 
@@ -57,4 +57,8 @@ Familiar Sounds and Little Notes use the actual desktop teammate implementations
 
 ## Current callback behavior
 
-Familiar Sounds calls `onComplete` to save the optional reflection in its own garden-scoped localStorage key. A failed write remains retryable. Little Notes saves its audio through the shared IndexedDB helper, then notifies the adapter. Neither callback creates or blooms a memory flower. The shared header always permits returning, and `embedded` hides redundant initial back buttons.
+Familiar Sounds calls `onComplete` to save the optional reflection in its own garden-scoped localStorage key. A failed write remains retryable. Little Notes saves its audio through the shared IndexedDB helper, then notifies the adapter. Picture Together also saves a separate local picture moment under its own activity key, once per kept round. None of these callbacks creates or blooms a memory flower. The shared header always permits returning, and `embedded` hides redundant initial back buttons.
+
+## Picture Together integration
+
+The original Vite `import.meta.glob` has been replaced by `lib/garden-pictures.json`. Its 15 example photos live in `public/pictures/`, grouped into six themes. Add image paths to the manifest when adding assets; the asset test checks that every theme has packaged files. The original drag engine is the pinned `react-jigsaw-puzzle@1.0.5` dependency, loaded client-side. Its CSS and the supplied scoped PictureTogether.css are retained. Drag play uses mouse/touch; keyboard users can choose Just look at this picture and Keep this picture without solving. Exiting an interrupted touch drag restores page scrolling.
